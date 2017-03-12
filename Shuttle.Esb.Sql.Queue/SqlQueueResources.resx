@@ -1,0 +1,216 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="ConnectionStringEmpty" xml:space="preserve">
+    <value>The connection string used by '{0}' is empty.</value>
+    <comment>{0} = name of component requiring the connecting string</comment>
+  </data>
+  <data name="ConnectionStringMissing" xml:space="preserve">
+    <value>Could not find a connection string with name '{0}'.</value>
+    <comment>{0} = the name of the missing connection string</comment>
+  </data>
+  <data name="CountError" xml:space="preserve">
+    <value>Could not get count for queue '{0}'.  Exception: {1}.  Query: {2}</value>
+    <comment>{0} = queue uri, {1} = exception message, {2} = query</comment>
+  </data>
+  <data name="CreateError" xml:space="preserve">
+    <value>Could not create queue '{0}'.  Exception: {1}.  Query: {2}</value>
+    <comment>{0} = queue uri, {1} = exception message, {2} = query</comment>
+  </data>
+  <data name="DeferredMessageCountError" xml:space="preserve">
+    <value>Could not get count for DeferredMessage table.  Exception: {0}.  Query: {1}</value>
+    <comment>{0} = exception message, {1} = query</comment>
+  </data>
+  <data name="DeferredMessageDatabaseNotConfigured" xml:space="preserve">
+    <value>The database has not been configured for deferred message storage.  Please run the DeferredMessageCreate.sql script file against your database.</value>
+  </data>
+  <data name="DeferredMessageDequeueError" xml:space="preserve">
+    <value>Could not dequeue a deferred message.  Exception: {0}.  Query: {1}</value>
+    <comment>{0} = exception message, {1} = query</comment>
+  </data>
+  <data name="DeferredMessageEnqueueError" xml:space="preserve">
+    <value>Could not enqueue a deferred message.  Exception: {0}.  Query: {1}</value>
+    <comment>{0} = exception message, {1} = query</comment>
+  </data>
+  <data name="DeferredMessagePurgeError" xml:space="preserve">
+    <value>Could not purge DeferredMessage table.  Exception: {0}.  Query: {1}</value>
+    <comment>{0} = exception message, {1} = query</comment>
+  </data>
+  <data name="DequeueError" xml:space="preserve">
+    <value>Could not dequeue message from queue '{0}'.  Exception: {1}.  Query: {2}</value>
+    <comment>{0} = queue uri, {1} = exception message, {2} = query</comment>
+  </data>
+  <data name="DequeueIdError" xml:space="preserve">
+    <value>Could not dequeue message from queue '{0}'.  Exception: {1}.  Query: {2}</value>
+    <comment>{0} = queue uri, {1} = exception message, {2} = query</comment>
+  </data>
+  <data name="DropError" xml:space="preserve">
+    <value>Could not drop queue '{0}'.  Exception: {1}.  Query: {2}</value>
+    <comment>{0} = queue uri, {1} = exception message, {2} = query</comment>
+  </data>
+  <data name="EmbeddedScriptMissingException" xml:space="preserve">
+    <value>Could not find embedded resource script with file name '{0}'.</value>
+    <comment>{0} = script file name</comment>
+  </data>
+  <data name="EnqueueDataError" xml:space="preserve">
+    <value>Could not enqueue message data with message id '{0}' on queue '{1}'.  Exception: {2}</value>
+    <comment>{0} = message id, {1} = queue uri, {2} = exception message</comment>
+  </data>
+  <data name="EnqueueError" xml:space="preserve">
+    <value>Could not enqueue message id '{0}' on queue '{1}'.  Exception: {2}</value>
+    <comment>{0} = message id, {1} = queue uri, {2} = exception message</comment>
+  </data>
+  <data name="ExistsError" xml:space="preserve">
+    <value>Could not check whether queue '{0}' exists.  Exception: {1}.  Query: {2}</value>
+    <comment>{0} = queue uri, {1} = exception message, {2} = query</comment>
+  </data>
+  <data name="IdempotenceDatabaseNotConfigured" xml:space="preserve">
+    <value>The database has not been configured for the idempotence service.  Please run the IdempotenceServiceCreate.sql script file against your database.</value>
+  </data>
+  <data name="InvalidSagaData" xml:space="preserve">
+    <value>Saga data with id '{0}' for type '{1}' does not implement SagaData.</value>
+    <comment>{0] = saga data id. {1} = full type name</comment>
+  </data>
+  <data name="NoInboxException" xml:space="preserve">
+    <value>The idempotence service cannot be used as there is no inbox configured for the service bus.</value>
+  </data>
+  <data name="ProviderNameEmpty" xml:space="preserve">
+    <value>The provider name used by '{0}' is empty.</value>
+    <comment>{0} = name of component requiring the provider name</comment>
+  </data>
+  <data name="PurgeError" xml:space="preserve">
+    <value>Could not purge queue '{0}'.  Exception: {1}.  Query: {2}</value>
+    <comment>{0} = queue uri, {1} = exception message, {2} = query</comment>
+  </data>
+  <data name="ReadError" xml:space="preserve">
+    <value>Could not read top {0} messages from queue '{1}'.  Exception: {2}.  Query: {3}</value>
+    <comment>{0} = top number, {1} = queue uri, {2} = exception message, {3} = query</comment>
+  </data>
+  <data name="RemoveError" xml:space="preserve">
+    <value>Could not remove message from queue '{0}'.  Exception: {1}.  Query: {2}</value>
+    <comment>{0} = queue uri, {1} = exception message, {2} = query</comment>
+  </data>
+  <data name="ScriptCountException" xml:space="preserve">
+    <value>Directory '{0}' was searched (recursively) for script file '{1}'.  Exactly 1 file must exist in the directory structure but {2} were found.</value>
+    <comment>{0} = base folder where search started, {1} = script file name, {2} = number of matching files found</comment>
+  </data>
+  <data name="SubscriptionManagerCreateException" xml:space="preserve">
+    <value>The database has not been configured for subscription storage and the creation script could not be executed against your database.  The inner exception should provide the reason.  Please run the SubscriptionManagerCreate.sql script file against your database.</value>
+  </data>
+</root>

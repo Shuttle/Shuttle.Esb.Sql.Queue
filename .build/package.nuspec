@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<package >
+	<metadata>
+		<id>Shuttle.Esb.Sql.Queue</id>
+		<version>{semver}</version>
+		<authors>Eben Roux</authors>
+		<owners>Eben Roux</owners>
+		<licenseUrl>https://github.com/shuttle/Shuttle.Esb.Sql.Queue/raw/master/LICENSE</licenseUrl>
+		<projectUrl>https://github.com/shuttle/Shuttle.Esb.Sql.Queue</projectUrl>
+		<iconUrl>https://raw.githubusercontent.com/Shuttle/Shuttle.Esb.Sql.Queue/master/.media/logo.png</iconUrl>
+		<requireLicenseAcceptance>false</requireLicenseAcceptance>
+		<description>Sql RDBMS implementation of IQueue for use with Shuttle.Esb.</description>
+		<releaseNotes/>
+		<copyright>Copyright (c) {year}, Eben Roux</copyright>
+		<tags>shuttle-esb Shuttle.Esb.Sql.Queue sql</tags>
+		<dependencies>
+			<dependency id="Shuttle.Esb" version="{Shuttle.Esb-version}" />
+			<dependency id="Shuttle.Core.Infrastructure" version="{Shuttle.Core.Infrastructure-version}" />
+			<dependency id="Shuttle.Core.Data" version="{Shuttle.Core.Data-version}" />
+		</dependencies>
+	</metadata>
+</package>

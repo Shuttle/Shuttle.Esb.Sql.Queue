@@ -1,10 +1,6 @@
 # Shuttle.Esb.Sql.Queue
 
-Microsoft Sql RDBS implementation for use with Shuttl.Esb:
-
-- `SubscriptionManager` implements `ISubscriptionManager`
-- `IdempotenceService` implements `iIdempotenceService`
-- `SqlQueue` implements `IQueue`
+Sql RDBS implementation of the `IQueue` interface for use with Shuttl.Esb.
 
 # Supported providers
 
@@ -38,29 +34,3 @@ The queue configuration is part of the specified uri, e.g.:
 	  .
     />
 ~~~
-
-In addition to this there is also a Sql Server specific section (defaults specified here):
-
-~~~xml
-<configuration>
-  <configSections>
-    <section name='sqlServer' type="Shuttle.Esb.Sql.Queue.SqlSection, Shuttle.Esb.Sql.Queue"/>
-  </configSections>
-  
-  <sqlServer
-	subscriptionManagerConnectionStringName="Subscription"
-	idempotenceServiceConnectionStringName="Idempotence"
-  />
-  .
-  .
-  .
-<configuration>
-~~~
-
-# SubscriptionManager
-
-A Sql Server based `ISubscriptionManager` implementation is also provided.  The subscription manager caches all subscriptions forever so should a new subscriber be added be sure to restart the publisher endpoint service.
-
-# IdempotenceService
-
-A `IIdempotenceService` implementation is also available for Sql Server.

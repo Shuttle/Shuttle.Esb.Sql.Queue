@@ -58,8 +58,8 @@
       <HintPath>..\packages\Shuttle.Core.Castle.1.0.7\lib\net45-full\Shuttle.Core.Castle.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="Shuttle.Core.Data, Version=4.2.12.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Shuttle.Core.Data.4.2.12\lib\net45-full\Shuttle.Core.Data.dll</HintPath>
+    <Reference Include="Shuttle.Core.Data, Version=4.2.13.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Shuttle.Core.Data.4.2.13\lib\net45-full\Shuttle.Core.Data.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Shuttle.Core.Infrastructure, Version=4.2.78.0, Culture=neutral, processorArchitecture=MSIL">

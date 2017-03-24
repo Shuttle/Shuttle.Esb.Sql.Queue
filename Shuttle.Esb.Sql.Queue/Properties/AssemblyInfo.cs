@@ -26,10 +26,10 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("Shuttle.Esb.Sql.Queue for .NET Framework 4.6.1")]
 #endif
 
-[assembly: AssemblyVersion("1.0.1.0")]
+[assembly: AssemblyVersion("8.0.0.0")]
 [assembly: AssemblyCopyright("Copyright © Eben Roux 2017")]
 [assembly: AssemblyProduct("Shuttle.Esb")]
 [assembly: AssemblyCompany("Shuttle")]
 [assembly: AssemblyConfiguration("Release")]
-[assembly: AssemblyInformationalVersion("1.0.1")]
+[assembly: AssemblyInformationalVersion("8.0.0")]
 [assembly: ComVisible(false)]

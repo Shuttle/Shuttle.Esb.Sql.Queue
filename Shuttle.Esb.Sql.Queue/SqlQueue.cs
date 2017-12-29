@@ -7,349 +7,368 @@ using Shuttle.Core.Infrastructure;
 
 namespace Shuttle.Esb.Sql.Queue
 {
-	public class SqlQueue : IQueue, ICreateQueue, IDropQueue, IPurgeQueue
-	{
-		private class UnacknowledgedMessage
-		{
-			public UnacknowledgedMessage(Guid messageId, int sequenceId)
-			{
-				SequenceId = sequenceId;
-				MessageId = messageId;
-			}
+    public class SqlQueue : IQueue, ICreateQueue, IDropQueue, IPurgeQueue
+    {
+        private readonly string _connectionName;
+        private readonly IDatabaseContextFactory _databaseContextFactory;
 
-			public int SequenceId { get; private set; }
-			public Guid MessageId { get; private set; }
-		}
+        private readonly IDatabaseGateway _databaseGateway;
 
-		private readonly IDatabaseGateway _databaseGateway;
+        private readonly List<Guid> _emptyMessageIds = new List<Guid>
+        {
+            Guid.Empty
+        };
 
-		private readonly object _padlock = new object();
-		private readonly List<UnacknowledgedMessage> _unacknowledgedMessages = new List<UnacknowledgedMessage>();
+        private readonly ILog _log;
 
-		private readonly List<Guid> _emptyMessageIds = new List<Guid>
-		{
-			Guid.Empty
-		};
+        private readonly object _lock = new object();
 
-		private readonly IScriptProvider _scriptProvider;
+        private readonly IScriptProvider _scriptProvider;
+        private readonly string _tableName;
+        private readonly List<UnacknowledgedMessage> _unacknowledgedMessages = new List<UnacknowledgedMessage>();
 
-		private readonly string _connectionName;
-		private readonly string _tableName;
-		private readonly IDatabaseContextFactory _databaseContextFactory;
+        private IQuery _countQuery;
+        private IQuery _createQuery;
+        private string _dequeueIdQueryStatement;
+        private IQuery _dropQuery;
+        private string _enqueueQueryStatement;
+        private IQuery _existsQuery;
+        private IQuery _purgeQuery;
 
-		private IQuery _countQuery;
-		private IQuery _createQuery;
-		private IQuery _dropQuery;
-		private IQuery _existsQuery;
-		private IQuery _purgeQuery;
+        private string _removeQueryStatement;
 
-		private string _removeQueryStatement;
-		private string _enqueueQueryStatement;
-		private string _dequeueIdQueryStatement;
+        public SqlQueue(Uri uri,
+            IScriptProvider scriptProvider,
+            IDatabaseContextFactory databaseContextFactory,
+            IDatabaseGateway databaseGateway)
+        {
+            Guard.AgainstNull(uri, "uri");
+            Guard.AgainstNull(scriptProvider, "scriptProvider");
+            Guard.AgainstNull(databaseContextFactory, "databaseContextFactory");
+            Guard.AgainstNull(databaseGateway, "databaseGateway");
 
-		private readonly ILog _log;
+            _scriptProvider = scriptProvider;
+            _databaseContextFactory = databaseContextFactory;
+            _databaseGateway = databaseGateway;
 
-		public SqlQueue(Uri uri,
-			IScriptProvider scriptProvider,
-			IDatabaseContextFactory databaseContextFactory,
-			IDatabaseGateway databaseGateway)
-		{
-			Guard.AgainstNull(uri, "uri");
-			Guard.AgainstNull(scriptProvider, "scriptProvider");
-			Guard.AgainstNull(databaseContextFactory, "databaseContextFactory");
-			Guard.AgainstNull(databaseGateway, "databaseGateway");
+            _log = Log.For(this);
 
-			_scriptProvider = scriptProvider;
-			_databaseContextFactory = databaseContextFactory;
-			_databaseGateway = databaseGateway;
+            Uri = uri;
 
-			_log = Log.For(this);
+            var parser = new SqlUriParser(uri);
 
-			Uri = uri;
+            _connectionName = parser.ConnectionName;
+            _tableName = parser.TableName;
 
-			var parser = new SqlUriParser(uri);
+            BuildQueries();
+        }
 
-			_connectionName = parser.ConnectionName;
-			_tableName = parser.TableName;
+        public void Create()
+        {
+            if (Exists())
+            {
+                return;
+            }
 
-			BuildQueries();
-		}
+            try
+            {
+                lock (_lock)
+                {
+                    using (_databaseContextFactory.Create(_connectionName))
+                    {
+                        _databaseGateway.ExecuteUsing(_createQuery);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.Error(string.Format(SqlQueueResources.CreateError, Uri, ex.Message, _createQuery));
 
-		public void Create()
-		{
-			if (Exists())
-			{
-				return;
-			}
+                throw;
+            }
+        }
 
-			try
-			{
-				using (_databaseContextFactory.Create(_connectionName))
-				{
-					_databaseGateway.ExecuteUsing(_createQuery);
-				}
-			}
-			catch (Exception ex)
-			{
-				_log.Error(string.Format(SqlQueueResources.CreateError, Uri, ex.Message, _createQuery));
+        public void Drop()
+        {
+            if (!Exists())
+            {
+                return;
+            }
 
-				throw;
-			}
-		}
+            try
+            {
+                lock (_lock)
+                {
+                    using (_databaseContextFactory.Create(_connectionName))
+                    {
+                        _databaseGateway.ExecuteUsing(_dropQuery);
+                    }
 
-		public void Drop()
-		{
-			if (!Exists())
-			{
-				return;
-			}
+                    ResetUnacknowledgedMessageIds();
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.Error(string.Format(SqlQueueResources.DropError, Uri, ex.Message, _dropQuery));
 
-			try
-			{
-				lock (_padlock)
-				{
-					using (_databaseContextFactory.Create(_connectionName))
-					{
-						_databaseGateway.ExecuteUsing(_dropQuery);
-					}
+                throw;
+            }
+        }
 
-					ResetUnacknowledgedMessageIds();
-				}
-			}
-			catch (Exception ex)
-			{
-				_log.Error(string.Format(SqlQueueResources.DropError, Uri, ex.Message, _dropQuery));
+        public void Purge()
+        {
+            if (!Exists())
+            {
+                return;
+            }
 
-				throw;
-			}
-		}
+            try
+            {
+                lock (_lock)
+                {
+                    using (_databaseContextFactory.Create(_connectionName))
+                    {
+                        _databaseGateway.ExecuteUsing(_purgeQuery);
+                    }
 
-		public void Purge()
-		{
-			if (!Exists())
-			{
-				return;
-			}
+                    ResetUnacknowledgedMessageIds();
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.Error(string.Format(SqlQueueResources.PurgeError, Uri, ex.Message, _purgeQuery));
 
-			try
-			{
-				lock (_padlock)
-				{
-					using (_databaseContextFactory.Create(_connectionName))
-					{
-						_databaseGateway.ExecuteUsing(_purgeQuery);
-					}
+                throw;
+            }
+        }
 
-					ResetUnacknowledgedMessageIds();
-				}
-			}
-			catch (Exception ex)
-			{
-				_log.Error(string.Format(SqlQueueResources.PurgeError, Uri, ex.Message, _purgeQuery));
+        public void Enqueue(TransportMessage transportMessage, Stream stream)
+        {
+            try
+            {
+                lock (_lock)
+                {
+                    using (_databaseContextFactory.Create(_connectionName))
+                    {
+                        _databaseGateway.ExecuteUsing(
+                            RawQuery.Create(_enqueueQueryStatement)
+                                .AddParameterValue(QueueColumns.MessageId, transportMessage.MessageId)
+                                .AddParameterValue(QueueColumns.MessageBody, stream.ToBytes()));
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.Error(
+                    string.Format(SqlQueueResources.EnqueueError, transportMessage.MessageId, Uri, ex.Message));
 
-				throw;
-			}
-		}
+                throw;
+            }
+        }
 
-		public void Enqueue(TransportMessage transportMessage, Stream stream)
-		{
-			try
-			{
-				using (_databaseContextFactory.Create(_connectionName))
-				{
-					_databaseGateway.ExecuteUsing(
-						RawQuery.Create(_enqueueQueryStatement)
-							.AddParameterValue(QueueColumns.MessageId, transportMessage.MessageId)
-							.AddParameterValue(QueueColumns.MessageBody, stream.ToBytes()));
-				}
-			}
-			catch (Exception ex)
-			{
-				_log.Error(
-					string.Format(SqlQueueResources.EnqueueError, transportMessage.MessageId, Uri, ex.Message));
+        public Uri Uri { get; }
 
-				throw;
-			}
-		}
+        public bool IsEmpty()
+        {
+            try
+            {
+                lock (_lock)
+                {
+                    using (_databaseContextFactory.Create(_connectionName))
+                    {
+                        return _databaseGateway.GetScalarUsing<int>(_countQuery) == 0;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.Error(string.Format(SqlQueueResources.CountError, Uri, ex.Message, _countQuery));
 
-		public Uri Uri { get; private set; }
+                return true;
+            }
+        }
 
-		private bool Exists()
-		{
-			try
-			{
-				using (_databaseContextFactory.Create(_connectionName))
-				{
-					return _databaseGateway.GetScalarUsing<int>(_existsQuery) == 1;
-				}
-			}
-			catch (Exception ex)
-			{
-				_log.Error(string.Format(SqlQueueResources.ExistsError, Uri, ex.Message, _existsQuery));
+        public ReceivedMessage GetMessage()
+        {
+            lock (_lock)
+            {
+                try
+                {
+                    using (_databaseContextFactory.Create(_connectionName))
+                    {
+                        var messageIds = _unacknowledgedMessages.Count > 0
+                            ? _unacknowledgedMessages.Select(unacknowledgedMessage => unacknowledgedMessage.MessageId)
+                            : _emptyMessageIds;
 
-				throw;
-			}
-		}
+                        var row = _databaseGateway.GetSingleRowUsing(
+                            RawQuery.Create(
+                                _scriptProvider.Get(
+                                    Script.QueueDequeue,
+                                    _tableName,
+                                    string.Join(",", messageIds.Select(id => $"'{id}'").ToArray()))));
 
-		public bool IsEmpty()
-		{
-			try
-			{
-				using (_databaseContextFactory.Create(_connectionName))
-				{
-					return _databaseGateway.GetScalarUsing<int>(_countQuery) == 0;
-				}
-			}
-			catch (Exception ex)
-			{
-				_log.Error(string.Format(SqlQueueResources.CountError, Uri, ex.Message, _countQuery));
+                        if (row == null)
+                        {
+                            return null;
+                        }
 
-				return true;
-			}
-		}
+                        var result = new MemoryStream((byte[]) row["MessageBody"]);
+                        var messageId = new Guid(row["MessageId"].ToString());
 
-		public ReceivedMessage GetMessage()
-		{
-			lock (_padlock)
-			{
-				try
-				{
-					using (_databaseContextFactory.Create(_connectionName))
-					{
-						var messageIds = _unacknowledgedMessages.Count > 0
-							? _unacknowledgedMessages.Select(unacknowledgedMessage => unacknowledgedMessage.MessageId)
-							: _emptyMessageIds;
+                        MessageIdAcknowledgementRequired((int) row["SequenceId"], messageId);
 
-						var row = _databaseGateway.GetSingleRowUsing(
-							RawQuery.Create(
-								_scriptProvider.Get(
-									Script.QueueDequeue,
-									_tableName,
-									string.Join(",", messageIds.Select(id => string.Format("'{0}'", id)).ToArray()))));
+                        return new ReceivedMessage(result, messageId);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _log.Error(string.Format(SqlQueueResources.DequeueError, Uri, ex.Message, _createQuery));
 
-						if (row == null)
-						{
-							return null;
-						}
+                    throw;
+                }
+            }
+        }
 
-						var result = new MemoryStream((byte[]) row["MessageBody"]);
-						var messageId = new Guid(row["MessageId"].ToString());
+        public void Acknowledge(object acknowledgementToken)
+        {
+            try
+            {
+                var messageId = (Guid) acknowledgementToken;
 
-						MessageIdAcknowledgementRequired((int) row["SequenceId"], messageId);
+                lock (_lock)
+                {
+                    var sequenceId = MessageIdAcknowledged(messageId);
 
-						return new ReceivedMessage(result, messageId);
-					}
-				}
-				catch (Exception ex)
-				{
-					_log.Error(string.Format(SqlQueueResources.DequeueError, Uri, ex.Message, _createQuery));
+                    if (sequenceId == 0)
+                    {
+                        return;
+                    }
 
-					throw;
-				}
-			}
-		}
+                    using (_databaseContextFactory.Create(_connectionName))
+                    {
+                        _databaseGateway.ExecuteUsing(RawQuery.Create(_removeQueryStatement)
+                            .AddParameterValue(QueueColumns.SequenceId, sequenceId));
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.Error(string.Format(SqlQueueResources.RemoveError, Uri, ex.Message, _removeQueryStatement));
 
-		private void MessageIdAcknowledgementRequired(int sequenceId, Guid messageId)
-		{
-			_unacknowledgedMessages.Add(new UnacknowledgedMessage(messageId, sequenceId));
-		}
+                throw;
+            }
+        }
 
-		private void BuildQueries()
-		{
-			using (_databaseContextFactory.Create(_connectionName))
-			{
-				_existsQuery = RawQuery.Create(_scriptProvider.Get(Script.QueueExists, _tableName));
-				_createQuery = RawQuery.Create(_scriptProvider.Get(Script.QueueCreate, _tableName));
-				_dropQuery = RawQuery.Create(_scriptProvider.Get(Script.QueueDrop, _tableName));
-				_purgeQuery = RawQuery.Create(_scriptProvider.Get(Script.QueuePurge, _tableName));
-				_countQuery = RawQuery.Create(_scriptProvider.Get(Script.QueueCount, _tableName));
-				_enqueueQueryStatement = _scriptProvider.Get(Script.QueueEnqueue, _tableName);
-				_removeQueryStatement = _scriptProvider.Get(Script.QueueRemove, _tableName);
-				_dequeueIdQueryStatement = _scriptProvider.Get(Script.QueueDequeueId, _tableName);
-			}
-		}
+        public void Release(object acknowledgementToken)
+        {
+            try
+            {
+                var messageId = (Guid) acknowledgementToken;
 
-		public void Acknowledge(object acknowledgementToken)
-		{
-			try
-			{
-				var messageId = (Guid) acknowledgementToken;
+                lock (_lock)
+                {
+                    var sequenceId = MessageIdAcknowledged(messageId);
 
-				lock (_padlock)
-				{
-					using (_databaseContextFactory.Create(_connectionName))
-					{
-						_databaseGateway.ExecuteUsing(RawQuery.Create(_removeQueryStatement)
-							.AddParameterValue(QueueColumns.SequenceId, SequenceId(messageId)));
+                    if (sequenceId <= 0)
+                    {
+                        return;
+                    }
 
-						MessageIdAcknowledged(messageId);
-					}
-				}
-			}
-			catch (Exception ex)
-			{
-				_log.Error(string.Format(SqlQueueResources.RemoveError, Uri, ex.Message, _removeQueryStatement));
+                    using (var connection = _databaseContextFactory.Create(_connectionName))
+                    using (var transaction = connection.BeginTransaction())
+                    {
+                        var row = _databaseGateway.GetSingleRowUsing(
+                            RawQuery.Create(_dequeueIdQueryStatement)
+                                .AddParameterValue(QueueColumns.MessageId, messageId));
 
-				throw;
-			}
-		}
+                        if (row != null)
+                        {
+                            _databaseGateway.ExecuteUsing(RawQuery.Create(_removeQueryStatement)
+                                .AddParameterValue(QueueColumns.SequenceId, sequenceId));
 
-		public void Release(object acknowledgementToken)
-		{
-			try
-			{
-				var messageId = (Guid) acknowledgementToken;
+                            _databaseGateway.ExecuteUsing(
+                                RawQuery.Create(_enqueueQueryStatement)
+                                    .AddParameterValue(QueueColumns.MessageId, messageId)
+                                    .AddParameterValue(QueueColumns.MessageBody, row["MessageBody"]));
+                        }
 
-				lock (_padlock)
-				{
-					using (var connection = _databaseContextFactory.Create(_connectionName))
-					using (var transaction = connection.BeginTransaction())
-					{
-						var row = _databaseGateway.GetSingleRowUsing(
-							RawQuery.Create(_dequeueIdQueryStatement).AddParameterValue(QueueColumns.MessageId, messageId));
+                        transaction.CommitTransaction();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.Error(string.Format(SqlQueueResources.RemoveError, Uri, ex.Message, _removeQueryStatement));
 
-						if (row != null)
-						{
-							_databaseGateway.ExecuteUsing(RawQuery.Create(_removeQueryStatement)
-								.AddParameterValue(QueueColumns.SequenceId, SequenceId(messageId)));
+                throw;
+            }
+        }
 
-							_databaseGateway.ExecuteUsing(
-								RawQuery.Create(_enqueueQueryStatement)
-									.AddParameterValue(QueueColumns.MessageId, messageId)
-									.AddParameterValue(QueueColumns.MessageBody, row["MessageBody"]));
-						}
+        private bool Exists()
+        {
+            try
+            {
+                lock (_lock)
+                {
+                    using (_databaseContextFactory.Create(_connectionName))
+                    {
+                        return _databaseGateway.GetScalarUsing<int>(_existsQuery) == 1;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.Error(string.Format(SqlQueueResources.ExistsError, Uri, ex.Message, _existsQuery));
 
-						MessageIdAcknowledged(messageId);
+                throw;
+            }
+        }
 
-						transaction.CommitTransaction();
-					}
-				}
-			}
-			catch (Exception ex)
-			{
-				_log.Error(string.Format(SqlQueueResources.RemoveError, Uri, ex.Message, _removeQueryStatement));
+        private void MessageIdAcknowledgementRequired(int sequenceId, Guid messageId)
+        {
+            _unacknowledgedMessages.Add(new UnacknowledgedMessage(messageId, sequenceId));
+        }
 
-				throw;
-			}
-		}
+        private void BuildQueries()
+        {
+            using (_databaseContextFactory.Create(_connectionName))
+            {
+                _existsQuery = RawQuery.Create(_scriptProvider.Get(Script.QueueExists, _tableName));
+                _createQuery = RawQuery.Create(_scriptProvider.Get(Script.QueueCreate, _tableName));
+                _dropQuery = RawQuery.Create(_scriptProvider.Get(Script.QueueDrop, _tableName));
+                _purgeQuery = RawQuery.Create(_scriptProvider.Get(Script.QueuePurge, _tableName));
+                _countQuery = RawQuery.Create(_scriptProvider.Get(Script.QueueCount, _tableName));
+                _enqueueQueryStatement = _scriptProvider.Get(Script.QueueEnqueue, _tableName);
+                _removeQueryStatement = _scriptProvider.Get(Script.QueueRemove, _tableName);
+                _dequeueIdQueryStatement = _scriptProvider.Get(Script.QueueDequeueId, _tableName);
+            }
+        }
 
-		private void MessageIdAcknowledged(Guid messageId)
-		{
-			_unacknowledgedMessages.RemoveAll(unacknowledgedMessage => unacknowledgedMessage.MessageId.Equals(messageId));
-		}
+        private int MessageIdAcknowledged(Guid messageId)
+        {
+            var unacknowledgedMessage =
+                _unacknowledgedMessages.Find(candidate => candidate.MessageId.Equals(messageId));
 
-		private int SequenceId(Guid messageId)
-		{
-			var unacknowledgedMessage = _unacknowledgedMessages.Find(candidate => candidate.MessageId.Equals(messageId));
+            _unacknowledgedMessages.RemoveAll(message => message.MessageId.Equals(messageId));
 
-			return unacknowledgedMessage != null
-				? unacknowledgedMessage.SequenceId
-				: 0;
-		}
+            return unacknowledgedMessage?.SequenceId ?? 0;
+        }
 
-		private void ResetUnacknowledgedMessageIds()
-		{
-			_unacknowledgedMessages.Clear();
-		}
-	}
+        private void ResetUnacknowledgedMessageIds()
+        {
+            _unacknowledgedMessages.Clear();
+        }
+
+        private class UnacknowledgedMessage
+        {
+            public UnacknowledgedMessage(Guid messageId, int sequenceId)
+            {
+                SequenceId = sequenceId;
+                MessageId = messageId;
+            }
+
+            public int SequenceId { get; }
+            public Guid MessageId { get; }
+        }
+    }
 }

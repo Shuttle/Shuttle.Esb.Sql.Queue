@@ -3,7 +3,7 @@ using Shuttle.Esb.Tests;
 
 namespace Shuttle.Esb.Sql.Queue.Tests
 {
-	public class SqlDeferredMessageTest : DeferredFixture
+	public class SqlDeferredMessageFixture : DeferredFixture
 	{
 		[Test]
 		[TestCase(false)]

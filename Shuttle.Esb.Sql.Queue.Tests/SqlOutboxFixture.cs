@@ -3,7 +3,7 @@ using Shuttle.Esb.Tests;
 
 namespace Shuttle.Esb.Sql.Queue.Tests
 {
-	public class SqlOutboxTest : OutboxFixture
+	public class SqlOutboxFixture : OutboxFixture
 	{
 		[Test]
 		[TestCase(false)]

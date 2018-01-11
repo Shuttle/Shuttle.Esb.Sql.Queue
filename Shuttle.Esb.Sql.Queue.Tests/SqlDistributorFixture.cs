@@ -3,7 +3,7 @@ using Shuttle.Esb.Tests;
 
 namespace Shuttle.Esb.Sql.Queue.Tests
 {
-	public class SqlDistributorTest : DistributorFixture
+	public class SqlDistributorFixture : DistributorFixture
 	{
 		[Test]
 		[TestCase(false)]

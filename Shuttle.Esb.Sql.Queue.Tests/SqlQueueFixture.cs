@@ -1,11 +1,10 @@
 ﻿using NUnit.Framework;
-using Shuttle.Core.Data;
 using Shuttle.Esb.Tests;
 
 namespace Shuttle.Esb.Sql.Queue.Tests
 {
     [TestFixture]
-    public class SqlQueueTest : BasicQueueFixture
+    public class SqlQueueFixture : BasicQueueFixture
     {
         [Test]
         public void Should_be_able_to_get_message_again_when_not_acknowledged_before_queue_is_disposed()

@@ -3,7 +3,7 @@ using Shuttle.Esb.Tests;
 
 namespace Shuttle.Esb.Sql.Queue.Tests
 {
-	public class SqlInboxTest : InboxFixture
+	public class SqlInboxFixture : InboxFixture
 	{
 		[Test]
 		[TestCase(false)]
@@ -24,7 +24,7 @@ namespace Shuttle.Esb.Sql.Queue.Tests
 		[Test]
 		[TestCase(200, false)]
 		[TestCase(200, true)]
-		public void Should_be_able_to_process_queue_timeously_without_journal(int count, bool isTransactionalEndpoint)
+		public void Should_be_able_to_process_queue_timeously(int count, bool isTransactionalEndpoint)
 		{
 			TestInboxThroughput(SqlFixture.GetComponentContainer(), "sql://shuttle/{0}", 1000, count, isTransactionalEndpoint);
 		}

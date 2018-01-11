@@ -2,8 +2,10 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Shuttle.Core.Contract;
 using Shuttle.Core.Data;
-using Shuttle.Core.Infrastructure;
+using Shuttle.Core.Logging;
+using Shuttle.Core.Streams;
 
 namespace Shuttle.Esb.Sql.Queue
 {
@@ -19,9 +21,9 @@ namespace Shuttle.Esb.Sql.Queue
             Guid.Empty
         };
 
-        private readonly ILog _log;
-
         private readonly object _lock = new object();
+
+        private readonly ILog _log;
 
         private readonly IScriptProvider _scriptProvider;
         private readonly string _tableName;
@@ -70,21 +72,12 @@ namespace Shuttle.Esb.Sql.Queue
                 return;
             }
 
-            try
+            lock (_lock)
             {
-                lock (_lock)
+                using (_databaseContextFactory.Create(_connectionName))
                 {
-                    using (_databaseContextFactory.Create(_connectionName))
-                    {
-                        _databaseGateway.ExecuteUsing(_createQuery);
-                    }
+                    _databaseGateway.ExecuteUsing(_createQuery);
                 }
-            }
-            catch (Exception ex)
-            {
-                _log.Error(string.Format(SqlQueueResources.CreateError, Uri, ex.Message, _createQuery));
-
-                throw;
             }
         }
 
@@ -95,23 +88,14 @@ namespace Shuttle.Esb.Sql.Queue
                 return;
             }
 
-            try
+            lock (_lock)
             {
-                lock (_lock)
+                using (_databaseContextFactory.Create(_connectionName))
                 {
-                    using (_databaseContextFactory.Create(_connectionName))
-                    {
-                        _databaseGateway.ExecuteUsing(_dropQuery);
-                    }
-
-                    ResetUnacknowledgedMessageIds();
+                    _databaseGateway.ExecuteUsing(_dropQuery);
                 }
-            }
-            catch (Exception ex)
-            {
-                _log.Error(string.Format(SqlQueueResources.DropError, Uri, ex.Message, _dropQuery));
 
-                throw;
+                ResetUnacknowledgedMessageIds();
             }
         }
 
@@ -136,7 +120,7 @@ namespace Shuttle.Esb.Sql.Queue
             }
             catch (Exception ex)
             {
-                _log.Error(string.Format(SqlQueueResources.PurgeError, Uri, ex.Message, _purgeQuery));
+                _log.Error(string.Format(Resources.PurgeError, Uri, ex.Message, _purgeQuery));
 
                 throw;
             }
@@ -144,25 +128,15 @@ namespace Shuttle.Esb.Sql.Queue
 
         public void Enqueue(TransportMessage transportMessage, Stream stream)
         {
-            try
+            lock (_lock)
             {
-                lock (_lock)
+                using (_databaseContextFactory.Create(_connectionName))
                 {
-                    using (_databaseContextFactory.Create(_connectionName))
-                    {
-                        _databaseGateway.ExecuteUsing(
-                            RawQuery.Create(_enqueueQueryStatement)
-                                .AddParameterValue(QueueColumns.MessageId, transportMessage.MessageId)
-                                .AddParameterValue(QueueColumns.MessageBody, stream.ToBytes()));
-                    }
+                    _databaseGateway.ExecuteUsing(
+                        RawQuery.Create(_enqueueQueryStatement)
+                            .AddParameterValue(QueueColumns.MessageId, transportMessage.MessageId)
+                            .AddParameterValue(QueueColumns.MessageBody, stream.ToBytes()));
                 }
-            }
-            catch (Exception ex)
-            {
-                _log.Error(
-                    string.Format(SqlQueueResources.EnqueueError, transportMessage.MessageId, Uri, ex.Message));
-
-                throw;
             }
         }
 
@@ -170,21 +144,12 @@ namespace Shuttle.Esb.Sql.Queue
 
         public bool IsEmpty()
         {
-            try
+            lock (_lock)
             {
-                lock (_lock)
+                using (_databaseContextFactory.Create(_connectionName))
                 {
-                    using (_databaseContextFactory.Create(_connectionName))
-                    {
-                        return _databaseGateway.GetScalarUsing<int>(_countQuery) == 0;
-                    }
+                    return _databaseGateway.GetScalarUsing<int>(_countQuery) == 0;
                 }
-            }
-            catch (Exception ex)
-            {
-                _log.Error(string.Format(SqlQueueResources.CountError, Uri, ex.Message, _countQuery));
-
-                return true;
             }
         }
 
@@ -192,135 +157,99 @@ namespace Shuttle.Esb.Sql.Queue
         {
             lock (_lock)
             {
-                try
+                using (_databaseContextFactory.Create(_connectionName))
                 {
-                    using (_databaseContextFactory.Create(_connectionName))
+                    var messageIds = _unacknowledgedMessages.Count > 0
+                        ? _unacknowledgedMessages.Select(unacknowledgedMessage => unacknowledgedMessage.MessageId)
+                        : _emptyMessageIds;
+
+                    var row = _databaseGateway.GetSingleRowUsing(
+                        RawQuery.Create(
+                            _scriptProvider.Get(
+                                Script.QueueDequeue,
+                                _tableName,
+                                string.Join(",", messageIds.Select(id => $"'{id}'").ToArray()))));
+
+                    if (row == null)
                     {
-                        var messageIds = _unacknowledgedMessages.Count > 0
-                            ? _unacknowledgedMessages.Select(unacknowledgedMessage => unacknowledgedMessage.MessageId)
-                            : _emptyMessageIds;
-
-                        var row = _databaseGateway.GetSingleRowUsing(
-                            RawQuery.Create(
-                                _scriptProvider.Get(
-                                    Script.QueueDequeue,
-                                    _tableName,
-                                    string.Join(",", messageIds.Select(id => $"'{id}'").ToArray()))));
-
-                        if (row == null)
-                        {
-                            return null;
-                        }
-
-                        var result = new MemoryStream((byte[]) row["MessageBody"]);
-                        var messageId = new Guid(row["MessageId"].ToString());
-
-                        MessageIdAcknowledgementRequired((int) row["SequenceId"], messageId);
-
-                        return new ReceivedMessage(result, messageId);
+                        return null;
                     }
-                }
-                catch (Exception ex)
-                {
-                    _log.Error(string.Format(SqlQueueResources.DequeueError, Uri, ex.Message, _createQuery));
 
-                    throw;
+                    var result = new MemoryStream((byte[]) row["MessageBody"]);
+                    var messageId = new Guid(row["MessageId"].ToString());
+
+                    MessageIdAcknowledgementRequired((int) row["SequenceId"], messageId);
+
+                    return new ReceivedMessage(result, messageId);
                 }
             }
         }
 
         public void Acknowledge(object acknowledgementToken)
         {
-            try
-            {
-                var messageId = (Guid) acknowledgementToken;
+            var messageId = (Guid) acknowledgementToken;
 
-                lock (_lock)
+            lock (_lock)
+            {
+                var sequenceId = MessageIdAcknowledged(messageId);
+
+                if (sequenceId == 0)
                 {
-                    var sequenceId = MessageIdAcknowledged(messageId);
-
-                    if (sequenceId == 0)
-                    {
-                        return;
-                    }
-
-                    using (_databaseContextFactory.Create(_connectionName))
-                    {
-                        _databaseGateway.ExecuteUsing(RawQuery.Create(_removeQueryStatement)
-                            .AddParameterValue(QueueColumns.SequenceId, sequenceId));
-                    }
+                    return;
                 }
-            }
-            catch (Exception ex)
-            {
-                _log.Error(string.Format(SqlQueueResources.RemoveError, Uri, ex.Message, _removeQueryStatement));
 
-                throw;
+                using (_databaseContextFactory.Create(_connectionName))
+                {
+                    _databaseGateway.ExecuteUsing(RawQuery.Create(_removeQueryStatement)
+                        .AddParameterValue(QueueColumns.SequenceId, sequenceId));
+                }
             }
         }
 
         public void Release(object acknowledgementToken)
         {
-            try
-            {
-                var messageId = (Guid) acknowledgementToken;
+            var messageId = (Guid) acknowledgementToken;
 
-                lock (_lock)
+            lock (_lock)
+            {
+                var sequenceId = MessageIdAcknowledged(messageId);
+
+                if (sequenceId <= 0)
                 {
-                    var sequenceId = MessageIdAcknowledged(messageId);
-
-                    if (sequenceId <= 0)
-                    {
-                        return;
-                    }
-
-                    using (var connection = _databaseContextFactory.Create(_connectionName))
-                    using (var transaction = connection.BeginTransaction())
-                    {
-                        var row = _databaseGateway.GetSingleRowUsing(
-                            RawQuery.Create(_dequeueIdQueryStatement)
-                                .AddParameterValue(QueueColumns.MessageId, messageId));
-
-                        if (row != null)
-                        {
-                            _databaseGateway.ExecuteUsing(RawQuery.Create(_removeQueryStatement)
-                                .AddParameterValue(QueueColumns.SequenceId, sequenceId));
-
-                            _databaseGateway.ExecuteUsing(
-                                RawQuery.Create(_enqueueQueryStatement)
-                                    .AddParameterValue(QueueColumns.MessageId, messageId)
-                                    .AddParameterValue(QueueColumns.MessageBody, row["MessageBody"]));
-                        }
-
-                        transaction.CommitTransaction();
-                    }
+                    return;
                 }
-            }
-            catch (Exception ex)
-            {
-                _log.Error(string.Format(SqlQueueResources.RemoveError, Uri, ex.Message, _removeQueryStatement));
 
-                throw;
+                using (var connection = _databaseContextFactory.Create(_connectionName))
+                using (var transaction = connection.BeginTransaction())
+                {
+                    var row = _databaseGateway.GetSingleRowUsing(
+                        RawQuery.Create(_dequeueIdQueryStatement)
+                            .AddParameterValue(QueueColumns.MessageId, messageId));
+
+                    if (row != null)
+                    {
+                        _databaseGateway.ExecuteUsing(RawQuery.Create(_removeQueryStatement)
+                            .AddParameterValue(QueueColumns.SequenceId, sequenceId));
+
+                        _databaseGateway.ExecuteUsing(
+                            RawQuery.Create(_enqueueQueryStatement)
+                                .AddParameterValue(QueueColumns.MessageId, messageId)
+                                .AddParameterValue(QueueColumns.MessageBody, row["MessageBody"]));
+                    }
+
+                    transaction.CommitTransaction();
+                }
             }
         }
 
         private bool Exists()
         {
-            try
+            lock (_lock)
             {
-                lock (_lock)
+                using (_databaseContextFactory.Create(_connectionName))
                 {
-                    using (_databaseContextFactory.Create(_connectionName))
-                    {
-                        return _databaseGateway.GetScalarUsing<int>(_existsQuery) == 1;
-                    }
+                    return _databaseGateway.GetScalarUsing<int>(_existsQuery) == 1;
                 }
-            }
-            catch (Exception ex)
-            {
-                _log.Error(string.Format(SqlQueueResources.ExistsError, Uri, ex.Message, _existsQuery));
-
-                throw;
             }
         }
 

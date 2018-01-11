@@ -19,27 +19,27 @@ namespace Shuttle.Esb.Sql.Queue {
     // class via a tool like ResGen or Visual Studio.
     // To add or remove a member, edit your .ResX file then rerun ResGen
     // with the /str option, or rebuild your VS project.
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "4.0.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "15.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    internal class SqlQueueResources {
+    public class Resources {
         
         private static global::System.Resources.ResourceManager resourceMan;
         
         private static global::System.Globalization.CultureInfo resourceCulture;
         
         [global::System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
-        internal SqlQueueResources() {
+        internal Resources() {
         }
         
         /// <summary>
         ///   Returns the cached ResourceManager instance used by this class.
         /// </summary>
         [global::System.ComponentModel.EditorBrowsableAttribute(global::System.ComponentModel.EditorBrowsableState.Advanced)]
-        internal static global::System.Resources.ResourceManager ResourceManager {
+        public static global::System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.ReferenceEquals(resourceMan, null)) {
-                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("Shuttle.Esb.Sql.Queue.SqlQueueResources", typeof(SqlQueueResources).Assembly);
+                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("Shuttle.Esb.Sql.Queue.Resources", typeof(Resources).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;
@@ -51,7 +51,7 @@ namespace Shuttle.Esb.Sql.Queue {
         ///   resource lookups using this strongly typed resource class.
         /// </summary>
         [global::System.ComponentModel.EditorBrowsableAttribute(global::System.ComponentModel.EditorBrowsableState.Advanced)]
-        internal static global::System.Globalization.CultureInfo Culture {
+        public static global::System.Globalization.CultureInfo Culture {
             get {
                 return resourceCulture;
             }
@@ -63,7 +63,7 @@ namespace Shuttle.Esb.Sql.Queue {
         /// <summary>
         ///   Looks up a localized string similar to The connection string used by &apos;{0}&apos; is empty..
         /// </summary>
-        internal static string ConnectionStringEmpty {
+        public static string ConnectionStringEmpty {
             get {
                 return ResourceManager.GetString("ConnectionStringEmpty", resourceCulture);
             }
@@ -72,34 +72,16 @@ namespace Shuttle.Esb.Sql.Queue {
         /// <summary>
         ///   Looks up a localized string similar to Could not find a connection string with name &apos;{0}&apos;..
         /// </summary>
-        internal static string ConnectionStringMissing {
+        public static string ConnectionStringMissing {
             get {
                 return ResourceManager.GetString("ConnectionStringMissing", resourceCulture);
             }
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Could not get count for queue &apos;{0}&apos;.  Exception: {1}.  Query: {2}.
-        /// </summary>
-        internal static string CountError {
-            get {
-                return ResourceManager.GetString("CountError", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Could not create queue &apos;{0}&apos;.  Exception: {1}.  Query: {2}.
-        /// </summary>
-        internal static string CreateError {
-            get {
-                return ResourceManager.GetString("CreateError", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Could not get count for DeferredMessage table.  Exception: {0}.  Query: {1}.
         /// </summary>
-        internal static string DeferredMessageCountError {
+        public static string DeferredMessageCountError {
             get {
                 return ResourceManager.GetString("DeferredMessageCountError", resourceCulture);
             }
@@ -108,7 +90,7 @@ namespace Shuttle.Esb.Sql.Queue {
         /// <summary>
         ///   Looks up a localized string similar to The database has not been configured for deferred message storage.  Please run the DeferredMessageCreate.sql script file against your database..
         /// </summary>
-        internal static string DeferredMessageDatabaseNotConfigured {
+        public static string DeferredMessageDatabaseNotConfigured {
             get {
                 return ResourceManager.GetString("DeferredMessageDatabaseNotConfigured", resourceCulture);
             }
@@ -117,7 +99,7 @@ namespace Shuttle.Esb.Sql.Queue {
         /// <summary>
         ///   Looks up a localized string similar to Could not dequeue a deferred message.  Exception: {0}.  Query: {1}.
         /// </summary>
-        internal static string DeferredMessageDequeueError {
+        public static string DeferredMessageDequeueError {
             get {
                 return ResourceManager.GetString("DeferredMessageDequeueError", resourceCulture);
             }
@@ -126,7 +108,7 @@ namespace Shuttle.Esb.Sql.Queue {
         /// <summary>
         ///   Looks up a localized string similar to Could not enqueue a deferred message.  Exception: {0}.  Query: {1}.
         /// </summary>
-        internal static string DeferredMessageEnqueueError {
+        public static string DeferredMessageEnqueueError {
             get {
                 return ResourceManager.GetString("DeferredMessageEnqueueError", resourceCulture);
             }
@@ -135,43 +117,16 @@ namespace Shuttle.Esb.Sql.Queue {
         /// <summary>
         ///   Looks up a localized string similar to Could not purge DeferredMessage table.  Exception: {0}.  Query: {1}.
         /// </summary>
-        internal static string DeferredMessagePurgeError {
+        public static string DeferredMessagePurgeError {
             get {
                 return ResourceManager.GetString("DeferredMessagePurgeError", resourceCulture);
             }
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Could not dequeue message from queue &apos;{0}&apos;.  Exception: {1}.  Query: {2}.
-        /// </summary>
-        internal static string DequeueError {
-            get {
-                return ResourceManager.GetString("DequeueError", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Could not dequeue message from queue &apos;{0}&apos;.  Exception: {1}.  Query: {2}.
-        /// </summary>
-        internal static string DequeueIdError {
-            get {
-                return ResourceManager.GetString("DequeueIdError", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Could not drop queue &apos;{0}&apos;.  Exception: {1}.  Query: {2}.
-        /// </summary>
-        internal static string DropError {
-            get {
-                return ResourceManager.GetString("DropError", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Could not find embedded resource script with file name &apos;{0}&apos;..
         /// </summary>
-        internal static string EmbeddedScriptMissingException {
+        public static string EmbeddedScriptMissingException {
             get {
                 return ResourceManager.GetString("EmbeddedScriptMissingException", resourceCulture);
             }
@@ -180,34 +135,16 @@ namespace Shuttle.Esb.Sql.Queue {
         /// <summary>
         ///   Looks up a localized string similar to Could not enqueue message data with message id &apos;{0}&apos; on queue &apos;{1}&apos;.  Exception: {2}.
         /// </summary>
-        internal static string EnqueueDataError {
+        public static string EnqueueDataError {
             get {
                 return ResourceManager.GetString("EnqueueDataError", resourceCulture);
             }
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Could not enqueue message id &apos;{0}&apos; on queue &apos;{1}&apos;.  Exception: {2}.
-        /// </summary>
-        internal static string EnqueueError {
-            get {
-                return ResourceManager.GetString("EnqueueError", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Could not check whether queue &apos;{0}&apos; exists.  Exception: {1}.  Query: {2}.
-        /// </summary>
-        internal static string ExistsError {
-            get {
-                return ResourceManager.GetString("ExistsError", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to The database has not been configured for the idempotence service.  Please run the IdempotenceServiceCreate.sql script file against your database..
         /// </summary>
-        internal static string IdempotenceDatabaseNotConfigured {
+        public static string IdempotenceDatabaseNotConfigured {
             get {
                 return ResourceManager.GetString("IdempotenceDatabaseNotConfigured", resourceCulture);
             }
@@ -216,7 +153,7 @@ namespace Shuttle.Esb.Sql.Queue {
         /// <summary>
         ///   Looks up a localized string similar to Saga data with id &apos;{0}&apos; for type &apos;{1}&apos; does not implement SagaData..
         /// </summary>
-        internal static string InvalidSagaData {
+        public static string InvalidSagaData {
             get {
                 return ResourceManager.GetString("InvalidSagaData", resourceCulture);
             }
@@ -225,7 +162,7 @@ namespace Shuttle.Esb.Sql.Queue {
         /// <summary>
         ///   Looks up a localized string similar to The idempotence service cannot be used as there is no inbox configured for the service bus..
         /// </summary>
-        internal static string NoInboxException {
+        public static string NoInboxException {
             get {
                 return ResourceManager.GetString("NoInboxException", resourceCulture);
             }
@@ -234,7 +171,7 @@ namespace Shuttle.Esb.Sql.Queue {
         /// <summary>
         ///   Looks up a localized string similar to The provider name used by &apos;{0}&apos; is empty..
         /// </summary>
-        internal static string ProviderNameEmpty {
+        public static string ProviderNameEmpty {
             get {
                 return ResourceManager.GetString("ProviderNameEmpty", resourceCulture);
             }
@@ -243,7 +180,7 @@ namespace Shuttle.Esb.Sql.Queue {
         /// <summary>
         ///   Looks up a localized string similar to Could not purge queue &apos;{0}&apos;.  Exception: {1}.  Query: {2}.
         /// </summary>
-        internal static string PurgeError {
+        public static string PurgeError {
             get {
                 return ResourceManager.GetString("PurgeError", resourceCulture);
             }
@@ -252,25 +189,16 @@ namespace Shuttle.Esb.Sql.Queue {
         /// <summary>
         ///   Looks up a localized string similar to Could not read top {0} messages from queue &apos;{1}&apos;.  Exception: {2}.  Query: {3}.
         /// </summary>
-        internal static string ReadError {
+        public static string ReadError {
             get {
                 return ResourceManager.GetString("ReadError", resourceCulture);
             }
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Could not remove message from queue &apos;{0}&apos;.  Exception: {1}.  Query: {2}.
-        /// </summary>
-        internal static string RemoveError {
-            get {
-                return ResourceManager.GetString("RemoveError", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Directory &apos;{0}&apos; was searched (recursively) for script file &apos;{1}&apos;.  Exactly 1 file must exist in the directory structure but {2} were found..
         /// </summary>
-        internal static string ScriptCountException {
+        public static string ScriptCountException {
             get {
                 return ResourceManager.GetString("ScriptCountException", resourceCulture);
             }
@@ -279,7 +207,7 @@ namespace Shuttle.Esb.Sql.Queue {
         /// <summary>
         ///   Looks up a localized string similar to The database has not been configured for subscription storage and the creation script could not be executed against your database.  The inner exception should provide the reason.  Please run the SubscriptionManagerCreate.sql script file against your database..
         /// </summary>
-        internal static string SubscriptionManagerCreateException {
+        public static string SubscriptionManagerCreateException {
             get {
                 return ResourceManager.GetString("SubscriptionManagerCreateException", resourceCulture);
             }

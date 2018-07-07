@@ -28,6 +28,5 @@ namespace Shuttle.Esb.Sql.Queue.Tests
 		{
 			TestInboxThroughput(SqlFixture.GetComponentContainer(), "sql://shuttle/{0}", 1000, count, isTransactionalEndpoint);
 		}
-
 	}
 }

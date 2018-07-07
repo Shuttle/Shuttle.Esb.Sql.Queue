@@ -1,4 +1,4 @@
-if EXISTS (SELECT * FROM dbo.sysobjects WHERE id = OBJECT_ID(N'[{0}]') AND type = 'U')
+if object_id (N'{0}', N'U') is not null
 	select 1
 else
 	select 0

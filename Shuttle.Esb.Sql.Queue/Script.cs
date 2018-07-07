@@ -12,11 +12,6 @@ namespace Shuttle.Esb.Sql.Queue
 		public static readonly string QueuePurge = "QueuePurge";
 		public static readonly string QueueRemove = "QueueRemove";
 		public static readonly string QueueRead = "QueueRead";
-
-		public static readonly string DeferredMessageExists = "DeferredMessageExists";
-		public static readonly string DeferredMessageEnqueue = "DeferredMessageEnqueue";
-		public static readonly string DeferredMessageDequeue = "DeferredMessageDequeue";
-		public static readonly string DeferredMessagePurge = "DeferredMessagePurge";
-		public static readonly string DeferredMessageCount = "DeferredMessageCount";
+		public static readonly string QueueRelease = "QueueRelease";
 	}
 }

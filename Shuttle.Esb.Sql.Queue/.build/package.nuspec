@@ -9,6 +9,7 @@
     <licenseUrl>https://github.com/shuttle/Shuttle.Esb.Sql.Queue/raw/master/LICENSE</licenseUrl>
     <projectUrl>https://github.com/shuttle/Shuttle.Esb.Sql.Queue</projectUrl>
     <iconUrl>https://raw.githubusercontent.com/Shuttle/Shuttle.Esb.Sql.Queue/master/.media/logo.png</iconUrl>
+    <repository type="git" url="https://github.com/Shuttle/Shuttle.Esb.Queue.git" />
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Sql-based implementation of IQueue interface for use with Shuttle.Esb.</description>
     <releaseNotes />

@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net46;net461;net462;net47;net471;netstandard2.0;netcoreapp2.0</TargetFrameworks>
+    <TargetFrameworks>net461;net462;net47;net471;netstandard2.0;netcoreapp2.0;netcoreapp2.1</TargetFrameworks>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
   </PropertyGroup>
 
@@ -10,6 +10,7 @@
     <None Include=".build\package.nuspec" />
     <None Include=".build\Shuttle.MSBuild.dll" />
     <None Include=".build\Shuttle.MSBuild.targets" />
+    <EmbeddedResource Include=".scripts\System.Data.SqlClient\QueueRelease.sql" />
     <EmbeddedResource Include=".scripts\System.Data.SqlClient\QueueCount.sql" />
     <EmbeddedResource Include=".scripts\System.Data.SqlClient\QueueCreate.sql" />
     <EmbeddedResource Include=".scripts\System.Data.SqlClient\QueueDequeue.sql" />
@@ -23,8 +24,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Shuttle.Core.Data" Version="10.0.2" />
-    <PackageReference Include="Shuttle.Esb" Version="10.0.3" />
+    <PackageReference Include="Shuttle.Core.Data" Version="10.0.6" />
+    <PackageReference Include="Shuttle.Esb" Version="10.0.8" />
   </ItemGroup>
 
   <ItemGroup>

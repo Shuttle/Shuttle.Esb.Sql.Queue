@@ -1,6 +1,6 @@
 # Shuttle.Esb.Sql.Queue
 
-Sql RDBS implementation of the `IQueue` interface for use with Shuttl.Esb.
+Sql RDBMS implementation of the `IQueue` interface for use with Shuttle.Esb.
 
 # Supported providers
 

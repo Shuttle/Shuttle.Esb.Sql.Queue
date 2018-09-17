@@ -140,7 +140,8 @@ namespace Shuttle.Esb.Sql.Queue
             {
                 var row = _databaseGateway.GetSingleRowUsing(
                     RawQuery.Create(_scriptProvider.Get(Script.QueueDequeue, _tableName))
-                        .AddParameterValue(QueueColumns.UnacknowledgedHash, _unacknowledgedHash));
+                        .AddParameterValue(QueueColumns.UnacknowledgedHash, _unacknowledgedHash)
+                        .AddParameterValue(QueueColumns.UnacknowledgedId, Guid.NewGuid()));
 
                 if (row == null)
                 {

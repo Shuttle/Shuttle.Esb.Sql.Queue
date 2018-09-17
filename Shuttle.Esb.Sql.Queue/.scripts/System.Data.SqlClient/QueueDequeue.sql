@@ -1,21 +1,21 @@
-declare @SequenceId int
-
-select top 1 
-	@SequenceId = SequenceId 
-from 
-	[dbo].[{0}] 
-where 
-	UnacknowledgedHash is null 
-order by 
-	SequenceId;
-
 update
 	[dbo].[{0}] 
 set
 	UnacknowledgedHash = @UnacknowledgedHash,
-	UnacknowledgedDate = getdate()
+	UnacknowledgedDate = getdate(),
+	UnacknowledgedId = @UnacknowledgedId
 where 
-	SequenceId = @SequenceId;
+	SequenceId = 
+	(
+		select top 1 
+			SequenceId 
+		from 
+			[dbo].[{0}] 
+		where 
+			UnacknowledgedHash is null 
+		order by 
+			SequenceId
+	);
 
 select 
 	SequenceId, 
@@ -24,4 +24,5 @@ select
 from 
 	[dbo].[{0}] 
 where 
-	SequenceId = @SequenceId;
+	UnacknowledgedId = @UnacknowledgedId;
+

@@ -1,10 +1,9 @@
-﻿using Moq;
+﻿using System.Data.Common;
+using System.Data.SqlClient;
+using Moq;
 using Shuttle.Core.Container;
 using Shuttle.Core.Contract;
 using Shuttle.Core.Data;
-#if (NETCOREAPP2_0 || NETSTANDARD2_0)
-using Shuttle.Core.Data.SqlClient;
-#endif
 
 namespace Shuttle.Esb.Sql.Queue.Tests
 {
@@ -14,8 +13,8 @@ namespace Shuttle.Esb.Sql.Queue.Tests
         {
             Guard.AgainstNull(registry, nameof(registry));
 
-#if (NETCOREAPP2_0 || NETSTANDARD2_0)
-            registry.Register<IDbProviderFactories, DbProviderFactories>();
+#if (NETCOREAPP2_1 || NETSTANDARD2_0)
+            DbProviderFactories.RegisterFactory("System.Data.SqlClient", SqlClientFactory.Instance);
 
             var connectionConfigurationProvider = new Mock<IConnectionConfigurationProvider>();
 

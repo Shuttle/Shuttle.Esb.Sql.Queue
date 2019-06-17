@@ -1,7 +1,14 @@
 update
+	EndpointQueue
+set
+	EndpointHash = @EndpointHash
+where
+	EndpointHash = @EndpointHash
+
+update
 	[dbo].[{0}] 
 set
-	UnacknowledgedHash = @UnacknowledgedHash,
+	UnacknowledgedHash = @EndpointHash,
 	UnacknowledgedDate = getdate(),
 	UnacknowledgedId = @UnacknowledgedId
 where 

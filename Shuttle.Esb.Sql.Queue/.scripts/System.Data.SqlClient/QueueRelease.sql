@@ -5,4 +5,4 @@ set
 	UnacknowledgedDate = null,
 	UnacknowledgedId = null
 where 
-	UnacknowledgedHash = @UnacknowledgedHash
+	UnacknowledgedHash = @EndpointHash

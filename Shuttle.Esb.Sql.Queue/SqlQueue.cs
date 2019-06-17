@@ -21,7 +21,7 @@ namespace Shuttle.Esb.Sql.Queue
 
         private readonly IScriptProvider _scriptProvider;
         private readonly string _tableName;
-        private readonly byte[] _unacknowledgedHash;
+        private readonly byte[] _endpointHash;
 
         private IQuery _countQuery;
         private IQuery _createQuery;
@@ -32,6 +32,8 @@ namespace Shuttle.Esb.Sql.Queue
         private IQuery _purgeQuery;
 
         private string _removeQueryStatement;
+        private readonly string _machineName;
+        private readonly string _baseDirectory;
 
         public SqlQueue(Uri uri,
             IScriptProvider scriptProvider,
@@ -50,9 +52,11 @@ namespace Shuttle.Esb.Sql.Queue
 
             _log = Log.For(this);
 
-            _unacknowledgedHash = MD5.Create()
+            _machineName = Environment.MachineName;
+            _baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
+            _endpointHash = MD5.Create()
                 .ComputeHash(
-                    Encoding.ASCII.GetBytes($@"{Environment.MachineName}\\{AppDomain.CurrentDomain.BaseDirectory}"));
+                    Encoding.ASCII.GetBytes($@"{_machineName}\\{_baseDirectory}"));
 
             Uri = uri;
 
@@ -140,7 +144,7 @@ namespace Shuttle.Esb.Sql.Queue
             {
                 var row = _databaseGateway.GetSingleRowUsing(
                     RawQuery.Create(_scriptProvider.Get(Script.QueueDequeue, _tableName))
-                        .AddParameterValue(QueueColumns.UnacknowledgedHash, _unacknowledgedHash)
+                        .AddParameterValue(QueueColumns.EndpointHash, _endpointHash)
                         .AddParameterValue(QueueColumns.UnacknowledgedId, Guid.NewGuid()));
 
                 if (row == null)
@@ -216,8 +220,12 @@ namespace Shuttle.Esb.Sql.Queue
         {
             using (_databaseContextFactory.Create(_connectionName))
             {
+                _createQuery = RawQuery.Create(_scriptProvider.Get(Script.QueueCreate, _tableName))
+                    .AddParameterValue(QueueColumns.EndpointHash, _endpointHash)
+                    .AddParameterValue(QueueColumns.MachineName, _machineName)
+                    .AddParameterValue(QueueColumns.BaseDirectory, _baseDirectory);
+
                 _existsQuery = RawQuery.Create(_scriptProvider.Get(Script.QueueExists, _tableName));
-                _createQuery = RawQuery.Create(_scriptProvider.Get(Script.QueueCreate, _tableName));
                 _dropQuery = RawQuery.Create(_scriptProvider.Get(Script.QueueDrop, _tableName));
                 _purgeQuery = RawQuery.Create(_scriptProvider.Get(Script.QueuePurge, _tableName));
                 _countQuery = RawQuery.Create(_scriptProvider.Get(Script.QueueCount, _tableName));
@@ -226,15 +234,12 @@ namespace Shuttle.Esb.Sql.Queue
                 _dequeueIdQueryStatement = _scriptProvider.Get(Script.QueueDequeueId, _tableName);
             }
 
-            if (Exists())
-            {
-                Create();
+            Create();
 
-                using (_databaseContextFactory.Create(_connectionName))
-                {
-                    _databaseGateway.ExecuteUsing(RawQuery.Create(_scriptProvider.Get(Script.QueueRelease, _tableName))
-                        .AddParameterValue(QueueColumns.UnacknowledgedHash, _unacknowledgedHash));
-                }
+            using (_databaseContextFactory.Create(_connectionName))
+            {
+                _databaseGateway.ExecuteUsing(RawQuery.Create(_scriptProvider.Get(Script.QueueRelease, _tableName))
+                    .AddParameterValue(QueueColumns.EndpointHash, _endpointHash));
             }
         }
     }

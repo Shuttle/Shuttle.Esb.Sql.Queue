@@ -7,8 +7,9 @@ namespace Shuttle.Esb.Sql.Queue
 	public class QueueColumns
 	{
         public static MappedColumn<string> BaseDirectory = new MappedColumn<string>("BaseDirectory", DbType.AnsiString);
-        public static MappedColumn<byte[]> EndpointHash = new MappedColumn<byte[]>("EndpointHash", DbType.Binary);
+        public static MappedColumn<byte[]> UnacknowledgedHash = new MappedColumn<byte[]>("UnacknowledgedHash", DbType.Binary);
         public static MappedColumn<string> MachineName = new MappedColumn<string>("MachineName", DbType.AnsiString);
+        public static MappedColumn<string> QueueName = new MappedColumn<string>("QueueName", DbType.AnsiString);
         public static MappedColumn<byte[]> MessageBody = new MappedColumn<byte[]>("MessageBody", DbType.Binary);
 		public static MappedColumn<Guid> MessageId = new MappedColumn<Guid>("MessageId", DbType.Guid);
         public static MappedColumn<int> SequenceId = new MappedColumn<int>("SequenceId", DbType.Int32);

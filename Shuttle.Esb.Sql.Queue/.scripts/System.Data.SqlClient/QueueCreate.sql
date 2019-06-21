@@ -1,12 +1,13 @@
-IF OBJECT_ID (N'EndpointQueue', N'U') IS NULL 
-	CREATE TABLE [dbo].[EndpointQueue](
-		[EndpointHash] [binary](16) NOT NULL,
+IF OBJECT_ID (N'MachineQueue', N'U') IS NULL 
+	CREATE TABLE [dbo].[MachineQueue](
 		[MachineName] [varchar](130) NOT NULL,
-		[BaseDirectory] [varchar](260) NOT NULL,
 		[QueueName] [varchar](65) NOT NULL,
-	 CONSTRAINT [PK_EndpointQueue] PRIMARY KEY CLUSTERED 
+		[BaseDirectory] [varchar](260) NOT NULL,
+		[ManagedThreadId] [int] NOT NULL,
+	 CONSTRAINT [PK_MachineQueue] PRIMARY KEY CLUSTERED 
 	(
-		[EndpointHash] ASC
+		[MachineName] ASC,
+		[QueueName] ASC
 	)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
 	) ON [PRIMARY]
 
@@ -15,31 +16,34 @@ IF EXISTS
 	SELECT
 		NULL
 	FROM
-		EndpointQueue
+		MachineQueue
 	WHERE
-		EndpointHash = @EndpointHash
+		MachineName = @MachineName
+	AND
+		QueueName = @QueueName
 )
 	UPDATE
-		EndpointQueue
+		MachineQueue
 	SET
-		MachineName = @MachineName,
 		BaseDirectory = @BaseDirectory
 	WHERE
-		EndpointHash = @EndpointHash
+		MachineName = @MachineName
+	AND
+		QueueName = @QueueName
 ELSE
-	INSERT INTO EndpointQueue
+	INSERT INTO MachineQueue
 	(
-		EndpointHash,
 		MachineName,
+		QueueName,
 		BaseDirectory,
-		QueueName
+		ManagedThreadId
 	)
 	VALUES
 	(
-		@EndpointHash,
 		@MachineName,
+		@QueueName,
 		@BaseDirectory,
-		'{0}'
+		0
 	)
 
 

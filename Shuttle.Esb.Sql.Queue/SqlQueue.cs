@@ -40,10 +40,10 @@ namespace Shuttle.Esb.Sql.Queue
             IDatabaseContextFactory databaseContextFactory,
             IDatabaseGateway databaseGateway)
         {
-            Guard.AgainstNull(uri, "uri");
-            Guard.AgainstNull(scriptProvider, "scriptProvider");
-            Guard.AgainstNull(databaseContextFactory, "databaseContextFactory");
-            Guard.AgainstNull(databaseGateway, "databaseGateway");
+            Guard.AgainstNull(uri, nameof(uri));
+            Guard.AgainstNull(scriptProvider, nameof(scriptProvider));
+            Guard.AgainstNull(databaseContextFactory, nameof(databaseContextFactory));
+            Guard.AgainstNull(databaseGateway, nameof(databaseGateway));
 
             _scriptProvider = scriptProvider;
             _scriptProvider = scriptProvider;

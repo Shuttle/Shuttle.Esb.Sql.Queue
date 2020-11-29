@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFrameworks>netcoreapp2.1;net461</TargetFrameworks>
@@ -10,7 +10,7 @@
         <PackageReference Include="NUnit3TestAdapter" Version="3.13.0" />
         <PackageReference Include="Shuttle.Core.Castle" Version="10.0.5" />
         <PackageReference Include="Shuttle.Core.Data" Version="11.0.1" />
-        <PackageReference Include="Shuttle.Esb.Tests" Version="11.0.0" />
+        <PackageReference Include="Shuttle.Esb.Tests" Version="11.0.3" />
         <PackageReference Include="System.Data.SqlClient" Version="4.6.1" />
     </ItemGroup>
 

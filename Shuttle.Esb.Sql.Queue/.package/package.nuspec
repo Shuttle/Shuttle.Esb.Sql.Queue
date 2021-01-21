@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+
+<package>
+	<metadata>
+		<id>Shuttle.Esb.Sql.Queue</id>
+		<version>11.0.2</version>
+		<authors>Eben Roux</authors>
+		<owners>Eben Roux</owners>
+		<license type="expression">BSD-3-Clause</license>
+		<requireLicenseAcceptance>false</requireLicenseAcceptance>
+		<icon>images\logo.png</icon>
+		<repository type="git" url="https://github.com/Shuttle/Shuttle.Esb.Sql.Queue.git" />
+		<projectUrl>https://github.com/Shuttle/Shuttle.Esb.Sql.Queue</projectUrl>
+		<description>Sql-based implementation of IQueue interface for use with Shuttle.Esb.</description>
+		<copyright>Copyright (c) 2021, Eben Roux</copyright>
+		<tags>sqlqueue sql-based-queue sqlbroker sql-broker</tags>
+		<dependencies>
+      <dependency id="Shuttle.Core.Data" version="11.0.4" />
+      <dependency id="Shuttle.Esb" version="11.0.3" />
+		</dependencies>
+	</metadata>
+	<files>
+		<file src="..\..\..\.media\logo.png" target="images" />
+		<file src="lib\**\*.*" target="lib" />
+	</files>
+</package>

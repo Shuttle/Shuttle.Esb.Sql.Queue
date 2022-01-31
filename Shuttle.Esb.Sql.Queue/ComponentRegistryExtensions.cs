@@ -1,16 +1,19 @@
 ﻿using Shuttle.Core.Container;
 using Shuttle.Core.Contract;
+using Shuttle.Core.Data;
 
 namespace Shuttle.Esb.Sql.Queue
 {
-	public class Bootstrap : IComponentRegistryBootstrap
+	public static class ComponentRegistryExtensions
 	{
-		public void Register(IComponentRegistry registry)
+		public static void RegisterSqlQueue(this IComponentRegistry registry)
 		{
 			Guard.AgainstNull(registry, "registry");
 
 			registry.AttemptRegister<IScriptProviderConfiguration, ScriptProviderConfiguration>();
 			registry.AttemptRegister<IScriptProvider, ScriptProvider>();
+
+			registry.RegisterDataAccess();
 		}
 	}
 }

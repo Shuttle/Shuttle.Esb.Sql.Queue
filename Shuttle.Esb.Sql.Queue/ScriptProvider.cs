@@ -1,4 +1,5 @@
 ﻿using Shuttle.Core.Contract;
+using Shuttle.Core.Data;
 
 namespace Shuttle.Esb.Sql.Queue
 {

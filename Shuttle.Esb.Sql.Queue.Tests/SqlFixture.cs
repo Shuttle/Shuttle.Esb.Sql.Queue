@@ -3,6 +3,7 @@ using System.Data.SqlClient;
 using Castle.Windsor;
 using NUnit.Framework;
 using Shuttle.Core.Castle;
+using Shuttle.Core.Data;
 using Shuttle.Esb.Tests;
 
 namespace Shuttle.Esb.Sql.Queue.Tests
@@ -15,6 +16,7 @@ namespace Shuttle.Esb.Sql.Queue.Tests
 			var container = new WindsorComponentContainer(new WindsorContainer());
 
 			container.RegisterSqlQueue();
+			container.RegisterDataAccess();
 
 			return new ComponentContainer(container, () => container);
 		}

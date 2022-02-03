@@ -1,6 +1,5 @@
 ﻿using Shuttle.Core.Container;
 using Shuttle.Core.Contract;
-using Shuttle.Core.Data;
 
 namespace Shuttle.Esb.Sql.Queue
 {
@@ -12,8 +11,6 @@ namespace Shuttle.Esb.Sql.Queue
 
 			registry.AttemptRegister<IScriptProviderConfiguration, ScriptProviderConfiguration>();
 			registry.AttemptRegister<IScriptProvider, ScriptProvider>();
-
-			registry.RegisterDataAccess();
 		}
 	}
 }

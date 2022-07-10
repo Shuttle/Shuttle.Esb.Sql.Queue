@@ -10,7 +10,7 @@ namespace Shuttle.Esb.Sql.Queue.Tests
 		[TestCase(true)]
 		public void Should_be_able_to_distribute_messages(bool isTransactionalEndpoint)
 		{
-			TestDistributor(SqlFixture.GetComponentContainer(), SqlFixture.GetComponentContainer(), @"sql://shuttle/{0}", isTransactionalEndpoint);
+			TestDistributor(SqlFixture.GetServiceCollection(), SqlFixture.GetServiceCollection(), @"sql://shuttle/{0}", isTransactionalEndpoint);
 		}
 	}
 }

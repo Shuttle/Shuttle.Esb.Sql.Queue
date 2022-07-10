@@ -8,7 +8,7 @@ namespace Shuttle.Esb.Sql.Queue.Tests
 		[Test]
 		public void Should_be_able_to_handle_exceptions_in_receive_stage_of_receive_pipeline()
 		{
-			TestExceptionHandling(SqlFixture.GetComponentContainer(), "sql://shuttle/{0}");
+			TestExceptionHandling(SqlFixture.GetServiceCollection(), "sql://shuttle/{0}");
 		}
 	}
 }

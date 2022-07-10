@@ -4,7 +4,6 @@ using System.Security.Cryptography;
 using System.Text;
 using Shuttle.Core.Contract;
 using Shuttle.Core.Data;
-using Shuttle.Core.Logging;
 using Shuttle.Core.Streams;
 
 namespace Shuttle.Esb.Sql.Queue
@@ -16,8 +15,6 @@ namespace Shuttle.Esb.Sql.Queue
         private readonly IDatabaseGateway _databaseGateway;
 
         private readonly object _lock = new object();
-
-        private readonly ILog _log;
 
         private readonly IScriptProvider _scriptProvider;
         private readonly string _tableName;
@@ -50,8 +47,6 @@ namespace Shuttle.Esb.Sql.Queue
             _databaseContextFactory = databaseContextFactory;
             _databaseGateway = databaseGateway;
 
-            _log = Log.For(this);
-
             _machineName = Environment.MachineName;
             _baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
             _unacknowledgedHash = MD5.Create()
@@ -72,7 +67,7 @@ namespace Shuttle.Esb.Sql.Queue
         {
             using (_databaseContextFactory.Create(_connectionName))
             {
-                _databaseGateway.ExecuteUsing(_createQuery);
+                _databaseGateway.Execute(_createQuery);
             }
         }
 
@@ -87,7 +82,7 @@ namespace Shuttle.Esb.Sql.Queue
             {
                 using (_databaseContextFactory.Create(_connectionName))
                 {
-                    _databaseGateway.ExecuteUsing(_dropQuery);
+                    _databaseGateway.Execute(_dropQuery);
                 }
             }
         }
@@ -99,18 +94,9 @@ namespace Shuttle.Esb.Sql.Queue
                 return;
             }
 
-            try
+            using (_databaseContextFactory.Create(_connectionName))
             {
-                using (_databaseContextFactory.Create(_connectionName))
-                {
-                    _databaseGateway.ExecuteUsing(_purgeQuery);
-                }
-            }
-            catch (Exception ex)
-            {
-                _log.Error(string.Format(Resources.PurgeError, Uri, ex.Message, _purgeQuery));
-
-                throw;
+                _databaseGateway.Execute(_purgeQuery);
             }
         }
 
@@ -118,7 +104,7 @@ namespace Shuttle.Esb.Sql.Queue
         {
             using (_databaseContextFactory.Create(_connectionName))
             {
-                _databaseGateway.ExecuteUsing(
+                _databaseGateway.Execute(
                     RawQuery.Create(_enqueueQueryStatement)
                         .AddParameterValue(QueueColumns.MessageId, transportMessage.MessageId)
                         .AddParameterValue(QueueColumns.MessageBody, stream.ToBytes()));
@@ -126,6 +112,7 @@ namespace Shuttle.Esb.Sql.Queue
         }
 
         public Uri Uri { get; }
+        public bool IsStream => false;
 
         public bool IsEmpty()
         {
@@ -133,7 +120,7 @@ namespace Shuttle.Esb.Sql.Queue
             {
                 using (_databaseContextFactory.Create(_connectionName))
                 {
-                    return _databaseGateway.GetScalarUsing<int>(_countQuery) == 0;
+                    return _databaseGateway.GetScalar<int>(_countQuery) == 0;
                 }
             }
         }
@@ -142,7 +129,7 @@ namespace Shuttle.Esb.Sql.Queue
         {
             using (_databaseContextFactory.Create(_connectionName))
             {
-                var row = _databaseGateway.GetSingleRowUsing(
+                var row = _databaseGateway.GetRow(
                     RawQuery.Create(_scriptProvider.Get(Script.QueueDequeue, _tableName))
                         .AddParameterValue(QueueColumns.MachineName, _machineName)
                         .AddParameterValue(QueueColumns.QueueName, _tableName)
@@ -171,7 +158,7 @@ namespace Shuttle.Esb.Sql.Queue
 
             using (_databaseContextFactory.Create(_connectionName))
             {
-                _databaseGateway.ExecuteUsing(RawQuery.Create(_removeQueryStatement)
+                _databaseGateway.Execute(RawQuery.Create(_removeQueryStatement)
                     .AddParameterValue(QueueColumns.SequenceId, sequenceId));
             }
         }
@@ -188,16 +175,16 @@ namespace Shuttle.Esb.Sql.Queue
             using (var connection = _databaseContextFactory.Create(_connectionName))
             using (var transaction = connection.BeginTransaction())
             {
-                var row = _databaseGateway.GetSingleRowUsing(
+                var row = _databaseGateway.GetRow(
                     RawQuery.Create(_dequeueIdQueryStatement)
                         .AddParameterValue(QueueColumns.SequenceId, sequenceId));
 
                 if (row != null)
                 {
-                    _databaseGateway.ExecuteUsing(RawQuery.Create(_removeQueryStatement)
+                    _databaseGateway.Execute(RawQuery.Create(_removeQueryStatement)
                         .AddParameterValue(QueueColumns.SequenceId, sequenceId));
 
-                    _databaseGateway.ExecuteUsing(
+                    _databaseGateway.Execute(
                         RawQuery.Create(_enqueueQueryStatement)
                             .AddParameterValue(QueueColumns.MessageId, QueueColumns.MessageId.MapFrom(row))
                             .AddParameterValue(QueueColumns.MessageBody, row["MessageBody"]));
@@ -213,7 +200,7 @@ namespace Shuttle.Esb.Sql.Queue
             {
                 using (_databaseContextFactory.Create(_connectionName))
                 {
-                    return _databaseGateway.GetScalarUsing<int>(_existsQuery) == 1;
+                    return _databaseGateway.GetScalar<int>(_existsQuery) == 1;
                 }
             }
         }
@@ -241,7 +228,7 @@ namespace Shuttle.Esb.Sql.Queue
 
             using (_databaseContextFactory.Create(_connectionName))
             {
-                _databaseGateway.ExecuteUsing(RawQuery.Create(_scriptProvider.Get(Script.QueueRelease, _tableName))
+                _databaseGateway.Execute(RawQuery.Create(_scriptProvider.Get(Script.QueueRelease, _tableName))
                     .AddParameterValue(QueueColumns.UnacknowledgedHash, _unacknowledgedHash));
             }
         }

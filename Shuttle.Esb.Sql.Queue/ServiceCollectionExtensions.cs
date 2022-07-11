@@ -1,5 +1,4 @@
-﻿using System;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Shuttle.Core.Contract;
 
@@ -16,6 +15,5 @@ namespace Shuttle.Esb.Sql.Queue
 
             return services;
         }
-
     }
 }

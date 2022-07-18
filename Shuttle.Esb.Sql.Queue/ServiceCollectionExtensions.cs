@@ -11,7 +11,7 @@ namespace Shuttle.Esb.Sql.Queue
             Guard.AgainstNull(services, nameof(services));
 
             services.TryAddSingleton<IScriptProvider, ScriptProvider>();
-            services.TryAddSingleton<IQueueFactory, SqlQueueFactory>();
+            services.AddSingleton<IQueueFactory, SqlQueueFactory>();
 
             return services;
         }

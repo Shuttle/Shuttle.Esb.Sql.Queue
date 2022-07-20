@@ -5,12 +5,13 @@ namespace Shuttle.Esb.Sql.Queue.Tests
 {
 	public class SqlInboxFixture : InboxFixture
 	{
-		[Test]
-		[TestCase(false)]
-		[TestCase(true)]
-		public void Should_be_able_handle_errors(bool isTransactionalEndpoint)
+		[TestCase(true, true)]
+		[TestCase(true, false)]
+		[TestCase(false, true)]
+		[TestCase(false, false)]
+		public void Should_be_able_handle_errors(bool hasErrorQueue, bool isTransactionalEndpoint)
 		{
-			TestInboxError(SqlFixture.GetServiceCollection(), "sql://shuttle/{0}", isTransactionalEndpoint);
+			TestInboxError(SqlFixture.GetServiceCollection(), "sql://shuttle/{0}", hasErrorQueue, isTransactionalEndpoint);
 		}
 
 		[Test]

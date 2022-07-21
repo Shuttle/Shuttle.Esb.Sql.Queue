@@ -27,7 +27,7 @@ namespace Shuttle.Esb.Sql.Queue.Tests
 		[TestCase(200, true)]
 		public void Should_be_able_to_process_queue_timeously(int count, bool isTransactionalEndpoint)
 		{
-			TestInboxThroughput(SqlFixture.GetServiceCollection(), "sql://shuttle/{0}", 1000, count, isTransactionalEndpoint);
+			TestInboxThroughput(SqlFixture.GetServiceCollection(), "sql://shuttle/{0}", 1000, count, 5, isTransactionalEndpoint);
 		}
 	}
 }

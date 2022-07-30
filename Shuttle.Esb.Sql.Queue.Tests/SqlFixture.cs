@@ -19,7 +19,13 @@ namespace Shuttle.Esb.Sql.Queue.Tests
 			{
 				builder.AddConnectionString("shuttle", "System.Data.SqlClient", "server=.;database=shuttle;user id=sa;password=Pass!000");
 			});
-			services.AddSqlQueue();
+			services.AddSqlQueue(builder =>
+			{
+				builder.AddOptions("shuttle", new SqlQueueOptions
+				{
+					ConnectionStringName = "shuttle"
+				});
+			});
 
 			return services;
 		}

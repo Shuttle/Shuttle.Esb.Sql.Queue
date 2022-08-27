@@ -2,7 +2,7 @@
 {
     public class SqlQueueOptions
     {
-        public const string SectionName = "Shuttle:ServiceBus:SqlQueue";
+        public const string SectionName = "Shuttle:SqlQueue";
 
         public string ConnectionStringName { get; set; }
     }

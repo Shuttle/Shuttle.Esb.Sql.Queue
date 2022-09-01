@@ -4,23 +4,19 @@ using System.Security.Cryptography;
 using System.Text;
 using Shuttle.Core.Contract;
 using Shuttle.Core.Data;
-using Shuttle.Core.Logging;
 using Shuttle.Core.Streams;
 
 namespace Shuttle.Esb.Sql.Queue
 {
     public class SqlQueue : IQueue, ICreateQueue, IDropQueue, IPurgeQueue
     {
-        private readonly string _connectionName;
         private readonly IDatabaseContextFactory _databaseContextFactory;
         private readonly IDatabaseGateway _databaseGateway;
 
         private readonly object _lock = new object();
 
-        private readonly ILog _log;
-
+        private readonly SqlQueueOptions _sqlQueueOptions;
         private readonly IScriptProvider _scriptProvider;
-        private readonly string _tableName;
         private readonly byte[] _unacknowledgedHash;
 
         private IQuery _countQuery;
@@ -35,22 +31,19 @@ namespace Shuttle.Esb.Sql.Queue
         private readonly string _machineName;
         private readonly string _baseDirectory;
 
-        public SqlQueue(Uri uri,
-            IScriptProvider scriptProvider,
-            IDatabaseContextFactory databaseContextFactory,
-            IDatabaseGateway databaseGateway)
+        public SqlQueue(QueueUri uri, SqlQueueOptions sqlQueueOptions, IScriptProvider scriptProvider, IDatabaseContextFactory databaseContextFactory, IDatabaseGateway databaseGateway)
         {
             Guard.AgainstNull(uri, nameof(uri));
+            Guard.AgainstNull(sqlQueueOptions, nameof(sqlQueueOptions));
             Guard.AgainstNull(scriptProvider, nameof(scriptProvider));
             Guard.AgainstNull(databaseContextFactory, nameof(databaseContextFactory));
             Guard.AgainstNull(databaseGateway, nameof(databaseGateway));
 
+            _sqlQueueOptions = sqlQueueOptions;
             _scriptProvider = scriptProvider;
             _scriptProvider = scriptProvider;
             _databaseContextFactory = databaseContextFactory;
             _databaseGateway = databaseGateway;
-
-            _log = Log.For(this);
 
             _machineName = Environment.MachineName;
             _baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
@@ -60,19 +53,14 @@ namespace Shuttle.Esb.Sql.Queue
 
             Uri = uri;
 
-            var parser = new SqlUriParser(uri);
-
-            _connectionName = parser.ConnectionName;
-            _tableName = parser.TableName;
-
             Initialize();
         }
 
         public void Create()
         {
-            using (_databaseContextFactory.Create(_connectionName))
+            using (_databaseContextFactory.Create(_sqlQueueOptions.ConnectionStringName))
             {
-                _databaseGateway.ExecuteUsing(_createQuery);
+                _databaseGateway.Execute(_createQuery);
             }
         }
 
@@ -85,9 +73,9 @@ namespace Shuttle.Esb.Sql.Queue
 
             lock (_lock)
             {
-                using (_databaseContextFactory.Create(_connectionName))
+                using (_databaseContextFactory.Create(_sqlQueueOptions.ConnectionStringName))
                 {
-                    _databaseGateway.ExecuteUsing(_dropQuery);
+                    _databaseGateway.Execute(_dropQuery);
                 }
             }
         }
@@ -99,53 +87,45 @@ namespace Shuttle.Esb.Sql.Queue
                 return;
             }
 
-            try
+            using (_databaseContextFactory.Create(_sqlQueueOptions.ConnectionStringName))
             {
-                using (_databaseContextFactory.Create(_connectionName))
-                {
-                    _databaseGateway.ExecuteUsing(_purgeQuery);
-                }
-            }
-            catch (Exception ex)
-            {
-                _log.Error(string.Format(Resources.PurgeError, Uri, ex.Message, _purgeQuery));
-
-                throw;
+                _databaseGateway.Execute(_purgeQuery);
             }
         }
 
         public void Enqueue(TransportMessage transportMessage, Stream stream)
         {
-            using (_databaseContextFactory.Create(_connectionName))
+            using (_databaseContextFactory.Create(_sqlQueueOptions.ConnectionStringName))
             {
-                _databaseGateway.ExecuteUsing(
+                _databaseGateway.Execute(
                     RawQuery.Create(_enqueueQueryStatement)
                         .AddParameterValue(QueueColumns.MessageId, transportMessage.MessageId)
                         .AddParameterValue(QueueColumns.MessageBody, stream.ToBytes()));
             }
         }
 
-        public Uri Uri { get; }
+        public QueueUri Uri { get; }
+        public bool IsStream => false;
 
         public bool IsEmpty()
         {
             lock (_lock)
             {
-                using (_databaseContextFactory.Create(_connectionName))
+                using (_databaseContextFactory.Create(_sqlQueueOptions.ConnectionStringName))
                 {
-                    return _databaseGateway.GetScalarUsing<int>(_countQuery) == 0;
+                    return _databaseGateway.GetScalar<int>(_countQuery) == 0;
                 }
             }
         }
 
         public ReceivedMessage GetMessage()
         {
-            using (_databaseContextFactory.Create(_connectionName))
+            using (_databaseContextFactory.Create(_sqlQueueOptions.ConnectionStringName))
             {
-                var row = _databaseGateway.GetSingleRowUsing(
-                    RawQuery.Create(_scriptProvider.Get(Script.QueueDequeue, _tableName))
+                var row = _databaseGateway.GetRow(
+                    RawQuery.Create(_scriptProvider.Get(Script.QueueDequeue, Uri.QueueName))
                         .AddParameterValue(QueueColumns.MachineName, _machineName)
-                        .AddParameterValue(QueueColumns.QueueName, _tableName)
+                        .AddParameterValue(QueueColumns.QueueName, Uri.QueueName)
                         .AddParameterValue(QueueColumns.UnacknowledgedHash, _unacknowledgedHash)
                         .AddParameterValue(QueueColumns.UnacknowledgedId, Guid.NewGuid()));
 
@@ -169,9 +149,9 @@ namespace Shuttle.Esb.Sql.Queue
                 return;
             }
 
-            using (_databaseContextFactory.Create(_connectionName))
+            using (_databaseContextFactory.Create(_sqlQueueOptions.ConnectionStringName))
             {
-                _databaseGateway.ExecuteUsing(RawQuery.Create(_removeQueryStatement)
+                _databaseGateway.Execute(RawQuery.Create(_removeQueryStatement)
                     .AddParameterValue(QueueColumns.SequenceId, sequenceId));
             }
         }
@@ -185,19 +165,19 @@ namespace Shuttle.Esb.Sql.Queue
                 return;
             }
 
-            using (var connection = _databaseContextFactory.Create(_connectionName))
+            using (var connection = _databaseContextFactory.Create(_sqlQueueOptions.ConnectionStringName))
             using (var transaction = connection.BeginTransaction())
             {
-                var row = _databaseGateway.GetSingleRowUsing(
+                var row = _databaseGateway.GetRow(
                     RawQuery.Create(_dequeueIdQueryStatement)
                         .AddParameterValue(QueueColumns.SequenceId, sequenceId));
 
                 if (row != null)
                 {
-                    _databaseGateway.ExecuteUsing(RawQuery.Create(_removeQueryStatement)
+                    _databaseGateway.Execute(RawQuery.Create(_removeQueryStatement)
                         .AddParameterValue(QueueColumns.SequenceId, sequenceId));
 
-                    _databaseGateway.ExecuteUsing(
+                    _databaseGateway.Execute(
                         RawQuery.Create(_enqueueQueryStatement)
                             .AddParameterValue(QueueColumns.MessageId, QueueColumns.MessageId.MapFrom(row))
                             .AddParameterValue(QueueColumns.MessageBody, row["MessageBody"]));
@@ -211,37 +191,37 @@ namespace Shuttle.Esb.Sql.Queue
         {
             lock (_lock)
             {
-                using (_databaseContextFactory.Create(_connectionName))
+                using (_databaseContextFactory.Create(_sqlQueueOptions.ConnectionStringName))
                 {
-                    return _databaseGateway.GetScalarUsing<int>(_existsQuery) == 1;
+                    return _databaseGateway.GetScalar<int>(_existsQuery) == 1;
                 }
             }
         }
 
         private void Initialize()
         {
-            using (_databaseContextFactory.Create(_connectionName))
+            using (_databaseContextFactory.Create(_sqlQueueOptions.ConnectionStringName))
             {
-                _createQuery = RawQuery.Create(_scriptProvider.Get(Script.QueueCreate, _tableName))
+                _createQuery = RawQuery.Create(_scriptProvider.Get(Script.QueueCreate, Uri.QueueName))
                     .AddParameterValue(QueueColumns.UnacknowledgedHash, _unacknowledgedHash)
                     .AddParameterValue(QueueColumns.MachineName, _machineName)
-                    .AddParameterValue(QueueColumns.QueueName, _tableName)
+                    .AddParameterValue(QueueColumns.QueueName, Uri.QueueName)
                     .AddParameterValue(QueueColumns.BaseDirectory, _baseDirectory);
 
-                _existsQuery = RawQuery.Create(_scriptProvider.Get(Script.QueueExists, _tableName));
-                _dropQuery = RawQuery.Create(_scriptProvider.Get(Script.QueueDrop, _tableName));
-                _purgeQuery = RawQuery.Create(_scriptProvider.Get(Script.QueuePurge, _tableName));
-                _countQuery = RawQuery.Create(_scriptProvider.Get(Script.QueueCount, _tableName));
-                _enqueueQueryStatement = _scriptProvider.Get(Script.QueueEnqueue, _tableName);
-                _removeQueryStatement = _scriptProvider.Get(Script.QueueRemove, _tableName);
-                _dequeueIdQueryStatement = _scriptProvider.Get(Script.QueueDequeueId, _tableName);
+                _existsQuery = RawQuery.Create(_scriptProvider.Get(Script.QueueExists, Uri.QueueName));
+                _dropQuery = RawQuery.Create(_scriptProvider.Get(Script.QueueDrop, Uri.QueueName));
+                _purgeQuery = RawQuery.Create(_scriptProvider.Get(Script.QueuePurge, Uri.QueueName));
+                _countQuery = RawQuery.Create(_scriptProvider.Get(Script.QueueCount, Uri.QueueName));
+                _enqueueQueryStatement = _scriptProvider.Get(Script.QueueEnqueue, Uri.QueueName);
+                _removeQueryStatement = _scriptProvider.Get(Script.QueueRemove, Uri.QueueName);
+                _dequeueIdQueryStatement = _scriptProvider.Get(Script.QueueDequeueId, Uri.QueueName);
             }
 
             Create();
 
-            using (_databaseContextFactory.Create(_connectionName))
+            using (_databaseContextFactory.Create(_sqlQueueOptions.ConnectionStringName))
             {
-                _databaseGateway.ExecuteUsing(RawQuery.Create(_scriptProvider.Get(Script.QueueRelease, _tableName))
+                _databaseGateway.Execute(RawQuery.Create(_scriptProvider.Get(Script.QueueRelease, Uri.QueueName))
                     .AddParameterValue(QueueColumns.UnacknowledgedHash, _unacknowledgedHash));
             }
         }

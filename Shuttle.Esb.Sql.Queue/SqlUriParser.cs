@@ -3,11 +3,11 @@ using Shuttle.Core.Contract;
 
 namespace Shuttle.Esb.Sql.Queue
 {
-    public class SqlUriParser
+    public class SqlUriParserx
     {
         internal const string Scheme = "sql";
 
-        public SqlUriParser(Uri uri)
+        public SqlUriParserx(Uri uri)
         {
             Guard.AgainstNull(uri, "uri");
 

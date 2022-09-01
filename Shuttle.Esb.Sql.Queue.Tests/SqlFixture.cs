@@ -1,24 +1,33 @@
 using System.Data.Common;
 using System.Data.SqlClient;
-using Castle.Windsor;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using NUnit.Framework;
-using Shuttle.Core.Castle;
 using Shuttle.Core.Data;
-using Shuttle.Esb.Tests;
 
 namespace Shuttle.Esb.Sql.Queue.Tests
 {
 	[SetUpFixture]
 	public class SqlFixture
 	{
-		public static ComponentContainer GetComponentContainer()
+		public static IServiceCollection GetServiceCollection()
 		{
-			var container = new WindsorComponentContainer(new WindsorContainer());
+			var services = new ServiceCollection();
 
-			container.RegisterSqlQueue();
-			container.RegisterDataAccess();
+			services.AddSingleton<IConfiguration>(new ConfigurationBuilder().Build());
+			services.AddDataAccess(builder =>
+			{
+				builder.AddConnectionString("shuttle", "System.Data.SqlClient", "server=.;database=shuttle;user id=sa;password=Pass!000");
+			});
+			services.AddSqlQueue(builder =>
+			{
+				builder.AddOptions("shuttle", new SqlQueueOptions
+				{
+					ConnectionStringName = "shuttle"
+				});
+			});
 
-			return new ComponentContainer(container, () => container);
+			return services;
 		}
 
 		[OneTimeSetUp]

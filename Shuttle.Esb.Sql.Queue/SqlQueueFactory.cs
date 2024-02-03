@@ -2,6 +2,7 @@ using System;
 using Microsoft.Extensions.Options;
 using Shuttle.Core.Contract;
 using Shuttle.Core.Data;
+using Shuttle.Core.Threading;
 
 namespace Shuttle.Esb.Sql.Queue
 {
@@ -9,21 +10,17 @@ namespace Shuttle.Esb.Sql.Queue
     {
         private readonly IDatabaseContextFactory _databaseContextFactory;
         private readonly IDatabaseGateway _databaseGateway;
+        private readonly ICancellationTokenSource _cancellationTokenSource;
         private readonly IOptionsMonitor<SqlQueueOptions> _sqlQueueOptions;
         private readonly IScriptProvider _scriptProvider;
 
-        public SqlQueueFactory(IOptionsMonitor<SqlQueueOptions> sqlQueueOptions,  IScriptProvider scriptProvider, IDatabaseContextFactory databaseContextFactory,
-            IDatabaseGateway databaseGateway)
+        public SqlQueueFactory(IOptionsMonitor<SqlQueueOptions> sqlQueueOptions, IScriptProvider scriptProvider, IDatabaseContextFactory databaseContextFactory, IDatabaseGateway databaseGateway, ICancellationTokenSource cancellationTokenSource)
         {
-            Guard.AgainstNull(sqlQueueOptions, nameof(sqlQueueOptions));
-            Guard.AgainstNull(scriptProvider, nameof(scriptProvider));
-            Guard.AgainstNull(databaseContextFactory, nameof(databaseContextFactory));
-            Guard.AgainstNull(databaseGateway, nameof(databaseGateway));
-
-            _sqlQueueOptions = sqlQueueOptions;
-            _scriptProvider = scriptProvider;
-            _databaseContextFactory = databaseContextFactory;
-            _databaseGateway = databaseGateway;
+            _sqlQueueOptions = Guard.AgainstNull(sqlQueueOptions, nameof(sqlQueueOptions));
+            _scriptProvider = Guard.AgainstNull(scriptProvider, nameof(scriptProvider));
+            _databaseContextFactory = Guard.AgainstNull(databaseContextFactory, nameof(databaseContextFactory));
+            _databaseGateway = Guard.AgainstNull(databaseGateway, nameof(databaseGateway));
+            _cancellationTokenSource = Guard.AgainstNull(cancellationTokenSource, nameof(cancellationTokenSource));
         }
 
         public string Scheme => "sql";
@@ -40,7 +37,7 @@ namespace Shuttle.Esb.Sql.Queue
                 throw new InvalidOperationException(string.Format(Esb.Resources.QueueConfigurationNameException, queueUri.ConfigurationName));
             }
 
-            return new SqlQueue(queueUri, sqlQueueOptions, _scriptProvider, _databaseContextFactory, _databaseGateway);
+            return new SqlQueue(queueUri, sqlQueueOptions, _scriptProvider, _databaseContextFactory, _databaseGateway, _cancellationTokenSource.Get().Token);
         }
     }
 }

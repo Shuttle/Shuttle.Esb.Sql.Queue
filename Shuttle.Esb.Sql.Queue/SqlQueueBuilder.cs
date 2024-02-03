@@ -16,14 +16,14 @@ namespace Shuttle.Esb.Sql.Queue
             Services = services;
         }
 
-        public SqlQueueBuilder AddOptions(string name, SqlQueueOptions amazonSqsOptions)
+        public SqlQueueBuilder AddOptions(string name, SqlQueueOptions sqlQueueOptions)
         {
             Guard.AgainstNullOrEmptyString(name, nameof(name));
-            Guard.AgainstNull(amazonSqsOptions, nameof(amazonSqsOptions));
+            Guard.AgainstNull(sqlQueueOptions, nameof(sqlQueueOptions));
 
             SqlQueueOptions.Remove(name);
 
-            SqlQueueOptions.Add(name, amazonSqsOptions);
+            SqlQueueOptions.Add(name, sqlQueueOptions);
 
             return this;
         }

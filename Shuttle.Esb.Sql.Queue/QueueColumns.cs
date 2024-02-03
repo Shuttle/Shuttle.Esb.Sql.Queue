@@ -6,14 +6,14 @@ namespace Shuttle.Esb.Sql.Queue
 {
 	public class QueueColumns
 	{
-        public static MappedColumn<string> BaseDirectory = new MappedColumn<string>("BaseDirectory", DbType.AnsiString);
-        public static MappedColumn<byte[]> UnacknowledgedHash = new MappedColumn<byte[]>("UnacknowledgedHash", DbType.Binary);
-        public static MappedColumn<string> MachineName = new MappedColumn<string>("MachineName", DbType.AnsiString);
-        public static MappedColumn<string> QueueName = new MappedColumn<string>("QueueName", DbType.AnsiString);
-        public static MappedColumn<byte[]> MessageBody = new MappedColumn<byte[]>("MessageBody", DbType.Binary);
-		public static MappedColumn<Guid> MessageId = new MappedColumn<Guid>("MessageId", DbType.Guid);
-        public static MappedColumn<int> SequenceId = new MappedColumn<int>("SequenceId", DbType.Int32);
-	    public static MappedColumn<DateTime?> UnacknowledgedDate = new MappedColumn<DateTime?>("UnacknowledgedDate", DbType.DateTime);
-	    public static MappedColumn<Guid?> UnacknowledgedId = new MappedColumn<Guid?>("UnacknowledgedId", DbType.Guid);
+        public static Column<string> BaseDirectory = new Column<string>("BaseDirectory", DbType.AnsiString);
+        public static Column<byte[]> UnacknowledgedHash = new Column<byte[]>("UnacknowledgedHash", DbType.Binary);
+        public static Column<string> MachineName = new Column<string>("MachineName", DbType.AnsiString);
+        public static Column<string> QueueName = new Column<string>("QueueName", DbType.AnsiString);
+        public static Column<byte[]> MessageBody = new Column<byte[]>("MessageBody", DbType.Binary);
+		public static Column<Guid> MessageId = new Column<Guid>("MessageId", DbType.Guid);
+        public static Column<int> SequenceId = new Column<int>("SequenceId", DbType.Int32);
+	    public static Column<DateTime?> UnacknowledgedDate = new Column<DateTime?>("UnacknowledgedDate", DbType.DateTime);
+	    public static Column<Guid?> UnacknowledgedId = new Column<Guid?>("UnacknowledgedId", DbType.Guid);
 	}
 }

@@ -12,8 +12,7 @@ namespace Shuttle.Esb.Sql.Queue
 {
     public class SqlQueue : IQueue, ICreateQueue, IDropQueue, IPurgeQueue
     {
-        private static readonly SemaphoreSlim
-            Lock = new SemaphoreSlim(1, 1);
+        private static readonly SemaphoreSlim Lock = new SemaphoreSlim(1, 1);
 
         private readonly string _baseDirectory;
         private readonly CancellationToken _cancellationToken;

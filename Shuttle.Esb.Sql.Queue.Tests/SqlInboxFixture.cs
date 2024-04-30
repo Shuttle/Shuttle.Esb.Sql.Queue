@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using NUnit.Framework;
 using Shuttle.Esb.Tests;
 
@@ -11,7 +12,16 @@ namespace Shuttle.Esb.Sql.Queue.Tests
 		[TestCase(false, false)]
 		public void Should_be_able_handle_errors(bool hasErrorQueue, bool isTransactionalEndpoint)
 		{
-			TestInboxError(SqlFixture.GetServiceCollection(), "sql://shuttle/{0}", hasErrorQueue, isTransactionalEndpoint);
+			TestInboxError(SqlConfiguration.GetServiceCollection(), "sql://shuttle/{0}", hasErrorQueue, isTransactionalEndpoint);
+		}
+
+		[TestCase(true, true)]
+		[TestCase(true, false)]
+		[TestCase(false, true)]
+		[TestCase(false, false)]
+		public async Task Should_be_able_handle_errors_async(bool hasErrorQueue, bool isTransactionalEndpoint)
+		{
+			await TestInboxErrorAsync(SqlConfiguration.GetServiceCollection(), "sql://shuttle/{0}", hasErrorQueue, isTransactionalEndpoint);
 		}
 
 		[Test]
@@ -19,15 +29,31 @@ namespace Shuttle.Esb.Sql.Queue.Tests
 		[TestCase(500, true)]
 		public void Should_be_able_to_process_messages_concurrently(int msToComplete, bool isTransactionalEndpoint)
 		{
-			TestInboxConcurrency(SqlFixture.GetServiceCollection(), "sql://shuttle/{0}", msToComplete, false);
+			TestInboxConcurrency(SqlConfiguration.GetServiceCollection(), "sql://shuttle/{0}", msToComplete, false);
 		}
 
 		[Test]
-		[TestCase(200, false)]
-		[TestCase(200, true)]
+		[TestCase(500, false)]
+		[TestCase(500, true)]
+		public async Task Should_be_able_to_process_messages_concurrently_async(int msToComplete, bool isTransactionalEndpoint)
+		{
+			await TestInboxConcurrencyAsync(SqlConfiguration.GetServiceCollection(), "sql://shuttle/{0}", msToComplete, false);
+		}
+
+		[Test]
+		[TestCase(50, false)]
+		[TestCase(50, true)]
 		public void Should_be_able_to_process_queue_timeously(int count, bool isTransactionalEndpoint)
 		{
-			TestInboxThroughput(SqlFixture.GetServiceCollection(), "sql://shuttle/{0}", 1000, count, 5, isTransactionalEndpoint);
+			TestInboxThroughput(SqlConfiguration.GetServiceCollection(), "sql://shuttle/{0}", 1000, count, 5, isTransactionalEndpoint);
+		}
+
+		[Test]
+		[TestCase(50, false)]
+		[TestCase(50, true)]
+		public async Task Should_be_able_to_process_queue_timeously_async(int count, bool isTransactionalEndpoint)
+		{
+			await TestInboxThroughputAsync(SqlConfiguration.GetServiceCollection(), "sql://shuttle/{0}", 1000, count, 5, isTransactionalEndpoint);
 		}
 	}
 }

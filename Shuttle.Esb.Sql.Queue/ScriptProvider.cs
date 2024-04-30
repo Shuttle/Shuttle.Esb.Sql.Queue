@@ -8,13 +8,12 @@ namespace Shuttle.Esb.Sql.Queue
 	{
 		private readonly Core.Data.IScriptProvider _scriptProvider;
 
-		public ScriptProvider(IOptions<ScriptProviderOptions> options, IDatabaseContextCache databaseContextCache)
+		public ScriptProvider(IOptionsMonitor<ConnectionStringOptions> connectionStringOptions, IOptions<ScriptProviderOptions> options)
 		{
 			Guard.AgainstNull(options, nameof(options));
 			Guard.AgainstNull(options.Value, nameof(options.Value));
-			Guard.AgainstNull(databaseContextCache, nameof(databaseContextCache));
 
-			_scriptProvider = new Core.Data.ScriptProvider(Options.Create(new ScriptProviderOptions
+			_scriptProvider = new Core.Data.ScriptProvider(connectionStringOptions, Options.Create(new ScriptProviderOptions
 			{
 				ResourceNameFormat = string.IsNullOrEmpty(options.Value.ResourceNameFormat)
 					? "Shuttle.Esb.Sql.Queue..scripts.{ProviderName}.{ScriptName}.sql"
@@ -22,17 +21,12 @@ namespace Shuttle.Esb.Sql.Queue
 				ResourceAssembly = options.Value.ResourceAssembly ?? typeof(SqlQueue).Assembly,
 				FileNameFormat = options.Value.FileNameFormat,
 				ScriptFolder = options.Value.ScriptFolder
-			}), databaseContextCache);
+			}));
 		}
 
-		public string Get(string scriptName)
+		public string Get(string connectionStringName, string scriptName)
 		{
-			return _scriptProvider.Get(scriptName);
+			return _scriptProvider.Get(connectionStringName, scriptName);
 		}
-
-		public string Get(string scriptName, params object[] parameters)
-		{
-			return _scriptProvider.Get(scriptName, parameters);
-		}
-	}
+    }
 }

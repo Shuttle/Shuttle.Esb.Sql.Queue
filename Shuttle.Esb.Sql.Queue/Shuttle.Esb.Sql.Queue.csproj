@@ -37,7 +37,7 @@
 
   <ItemGroup>
     <PackageReference Include="Shuttle.Core.Data" Version="15.0.1" />
-    <PackageReference Include="Shuttle.Esb" Version="14.0.0" />
+    <PackageReference Include="Shuttle.Esb" Version="14.0.1" />
   </ItemGroup>
 
   <ItemGroup>

@@ -8,18 +8,16 @@ namespace Shuttle.Esb.Sql.Queue
 {
     public class SqlQueueFactory : IQueueFactory
     {
-        private readonly IDatabaseContextService _databaseContextService;
         private readonly IDatabaseContextFactory _databaseContextFactory;
         private readonly IDatabaseGateway _databaseGateway;
         private readonly ICancellationTokenSource _cancellationTokenSource;
         private readonly IOptionsMonitor<SqlQueueOptions> _sqlQueueOptions;
         private readonly IScriptProvider _scriptProvider;
 
-        public SqlQueueFactory(IOptionsMonitor<SqlQueueOptions> sqlQueueOptions, IScriptProvider scriptProvider, IDatabaseContextService databaseContextService, IDatabaseContextFactory databaseContextFactory, IDatabaseGateway databaseGateway, ICancellationTokenSource cancellationTokenSource)
+        public SqlQueueFactory(IOptionsMonitor<SqlQueueOptions> sqlQueueOptions, IScriptProvider scriptProvider, IDatabaseContextFactory databaseContextFactory, IDatabaseGateway databaseGateway, ICancellationTokenSource cancellationTokenSource)
         {
             _sqlQueueOptions = Guard.AgainstNull(sqlQueueOptions, nameof(sqlQueueOptions));
             _scriptProvider = Guard.AgainstNull(scriptProvider, nameof(scriptProvider));
-            _databaseContextService = Guard.AgainstNull(databaseContextService, nameof(databaseContextService));
             _databaseContextFactory = Guard.AgainstNull(databaseContextFactory, nameof(databaseContextFactory));
             _databaseGateway = Guard.AgainstNull(databaseGateway, nameof(databaseGateway));
             _cancellationTokenSource = Guard.AgainstNull(cancellationTokenSource, nameof(cancellationTokenSource));
@@ -39,7 +37,7 @@ namespace Shuttle.Esb.Sql.Queue
                 throw new InvalidOperationException(string.Format(Esb.Resources.QueueConfigurationNameException, queueUri.ConfigurationName));
             }
 
-            return new SqlQueue(queueUri, sqlQueueOptions, _scriptProvider, _databaseContextService, _databaseContextFactory, _databaseGateway, _cancellationTokenSource.Get().Token);
+            return new SqlQueue(queueUri, sqlQueueOptions, _scriptProvider, _databaseContextFactory, _databaseGateway, _cancellationTokenSource.Get().Token);
         }
     }
 }

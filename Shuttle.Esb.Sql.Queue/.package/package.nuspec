@@ -3,7 +3,7 @@
 <package>
 	<metadata>
 		<id>Shuttle.Esb.Sql.Queue</id>
-		<version>15.0.1</version>
+		<version>16.0.0</version>
 		<authors>Eben Roux</authors>
 		<owners>Eben Roux</owners>
 		<license type="expression">BSD-3-Clause</license>
@@ -16,8 +16,9 @@
 		<copyright>Copyright (c) 2024, Eben Roux</copyright>
 		<tags>sqlqueue sql-based-queue sqlbroker sql-broker</tags>
 		<dependencies>
-      <dependency id="Shuttle.Core.Data" version="16.0.1" />
-      <dependency id="Shuttle.Esb" version="14.0.1" />
+      <dependency id="Shuttle.Core.Data" version="16.0.2" />
+      <dependency id="Shuttle.Core.Data.ThreadDatabaseContextScope" version="16.0.2" />
+      <dependency id="Shuttle.Esb" version="15.0.0" />
 		</dependencies>
 	</metadata>
 	<files>

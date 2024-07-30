@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Shuttle.Core.Contract;
+using Shuttle.Core.Data.ThreadDatabaseContextScope;
 
 namespace Shuttle.Esb.Sql.Queue
 {
@@ -28,6 +29,7 @@ namespace Shuttle.Esb.Sql.Queue
 
             services.TryAddSingleton<IScriptProvider, ScriptProvider>();
             services.AddSingleton<IQueueFactory, SqlQueueFactory>();
+            services.AddThreadDatabaseContextScope();
 
             return services;
         }

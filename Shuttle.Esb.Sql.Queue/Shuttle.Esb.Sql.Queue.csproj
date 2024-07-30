@@ -36,8 +36,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Shuttle.Core.Data" Version="16.0.1" />
-    <PackageReference Include="Shuttle.Esb" Version="14.0.1" />
+    <PackageReference Include="Shuttle.Core.Data" Version="16.0.2" />
+    <PackageReference Include="Shuttle.Core.Data.ThreadDatabaseContextScope" Version="16.0.2" />
+    <PackageReference Include="Shuttle.Esb" Version="15.0.0" />
   </ItemGroup>
 
   <ItemGroup>

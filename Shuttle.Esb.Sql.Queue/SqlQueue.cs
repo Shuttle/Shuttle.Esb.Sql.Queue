@@ -15,7 +15,6 @@ namespace Shuttle.Esb.Sql.Queue
         private static readonly SemaphoreSlim Lock = new SemaphoreSlim(1, 1);
 
         private readonly string _baseDirectory;
-        private readonly IDatabaseContextService _databaseContextService;
         private readonly CancellationToken _cancellationToken;
         private readonly IDatabaseContextFactory _databaseContextFactory;
         private readonly IDatabaseGateway _databaseGateway;
@@ -37,13 +36,12 @@ namespace Shuttle.Esb.Sql.Queue
 
         private string _removeQueryStatement;
 
-        public SqlQueue(QueueUri uri, SqlQueueOptions sqlQueueOptions, IScriptProvider scriptProvider, IDatabaseContextService databaseContextService, IDatabaseContextFactory databaseContextFactory, IDatabaseGateway databaseGateway, CancellationToken cancellationToken)
+        public SqlQueue(QueueUri uri, SqlQueueOptions sqlQueueOptions, IScriptProvider scriptProvider, IDatabaseContextFactory databaseContextFactory, IDatabaseGateway databaseGateway, CancellationToken cancellationToken)
         {
             Uri = Guard.AgainstNull(uri, nameof(uri));
 
             _sqlQueueOptions = Guard.AgainstNull(sqlQueueOptions, nameof(sqlQueueOptions));
             _scriptProvider = Guard.AgainstNull(scriptProvider, nameof(scriptProvider));
-            _databaseContextService = Guard.AgainstNull(databaseContextService, nameof(databaseContextService));
             _databaseContextFactory = Guard.AgainstNull(databaseContextFactory, nameof(databaseContextFactory));
             _databaseGateway = Guard.AgainstNull(databaseGateway, nameof(databaseGateway));
 
@@ -168,7 +166,6 @@ namespace Shuttle.Esb.Sql.Queue
                     return;
                 }
 
-                using (_databaseContextService.BeginScope())
                 await using (_databaseContextFactory.Create(_sqlQueueOptions.ConnectionStringName))
                 {
                     var query = new Query(_removeQueryStatement)
@@ -215,7 +212,6 @@ namespace Shuttle.Esb.Sql.Queue
 
             try
             {
-                using (_databaseContextService.BeginScope())
                 await using (_databaseContextFactory.Create(_sqlQueueOptions.ConnectionStringName))
                 {
                     if (sync)
@@ -259,7 +255,6 @@ namespace Shuttle.Esb.Sql.Queue
 
             try
             {
-                using (_databaseContextService.BeginScope())
                 await using (_databaseContextFactory.Create(_sqlQueueOptions.ConnectionStringName))
                 {
                     if (sync)
@@ -314,7 +309,6 @@ namespace Shuttle.Esb.Sql.Queue
 
             try
             {
-                using (_databaseContextService.BeginScope())
                 await using (_databaseContextFactory.Create(_sqlQueueOptions.ConnectionStringName))
                 {
                     if (sync)
@@ -374,7 +368,6 @@ namespace Shuttle.Esb.Sql.Queue
 
             try
             {
-                using (_databaseContextService.BeginScope())
                 await using (_databaseContextFactory.Create(_sqlQueueOptions.ConnectionStringName).ConfigureAwait(false))
                 {
                     var query = new Query(_scriptProvider.Get(_sqlQueueOptions.ConnectionStringName, Script.QueueDequeue, Uri.QueueName))
@@ -434,7 +427,6 @@ namespace Shuttle.Esb.Sql.Queue
             _removeQueryStatement = _scriptProvider.Get(_sqlQueueOptions.ConnectionStringName, Script.QueueRemove, Uri.QueueName);
             _dequeueIdQueryStatement = _scriptProvider.Get(_sqlQueueOptions.ConnectionStringName, Script.QueueDequeueId, Uri.QueueName);
 
-            using (_databaseContextService.BeginScope())
             using (_databaseContextFactory.Create(_sqlQueueOptions.ConnectionStringName))
             {
                 _databaseGateway.Execute(new Query(_scriptProvider.Get(_sqlQueueOptions.ConnectionStringName, Script.QueueRelease, Uri.QueueName))
@@ -465,7 +457,6 @@ namespace Shuttle.Esb.Sql.Queue
 
             try
             {
-                using (_databaseContextService.BeginScope())
                 await using (_databaseContextFactory.Create(_sqlQueueOptions.ConnectionStringName))
                 {
                     var result = (sync
@@ -508,7 +499,6 @@ namespace Shuttle.Esb.Sql.Queue
 
             try
             {
-                using (_databaseContextService.BeginScope())
                 await using (_databaseContextFactory.Create(_sqlQueueOptions.ConnectionStringName))
                 {
                     if (sync)
@@ -568,7 +558,6 @@ namespace Shuttle.Esb.Sql.Queue
 
             try
             {
-                using (_databaseContextService.BeginScope())
                 using (var databaseContext = _databaseContextFactory.Create(_sqlQueueOptions.ConnectionStringName))
                 using (var transaction = sync ? databaseContext.BeginTransaction() : await databaseContext.BeginTransactionAsync().ConfigureAwait(false))
                 {

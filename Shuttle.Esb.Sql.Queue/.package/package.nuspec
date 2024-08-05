@@ -16,8 +16,8 @@
 		<copyright>Copyright (c) 2024, Eben Roux</copyright>
 		<tags>sqlqueue sql-based-queue sqlbroker sql-broker</tags>
 		<dependencies>
-      <dependency id="Shuttle.Core.Data" version="16.0.2" />
-      <dependency id="Shuttle.Core.Data.ThreadDatabaseContextScope" version="16.0.2" />
+      <dependency id="Shuttle.Core.Data" version="17.0.0" />
+      <dependency id="Shuttle.Core.Data.ThreadDatabaseContextScope" version="17.0.0" />
       <dependency id="Shuttle.Esb" version="15.0.0" />
 		</dependencies>
 	</metadata>

@@ -26,7 +26,7 @@ public class SqlConfiguration
             })
             .AddSqlQueue(builder =>
             {
-                builder.AddOptions("shuttle", new SqlQueueOptions
+                builder.AddOptions("shuttle", new()
                 {
                     ConnectionStringName = "shuttle"
                 });

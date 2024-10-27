@@ -4,40 +4,35 @@ using Shuttle.Core.Contract;
 using Shuttle.Core.Data;
 using Shuttle.Core.Threading;
 
-namespace Shuttle.Esb.Sql.Queue
+namespace Shuttle.Esb.Sql.Queue;
+
+public class SqlQueueFactory : IQueueFactory
 {
-    public class SqlQueueFactory : IQueueFactory
+    private readonly ICancellationTokenSource _cancellationTokenSource;
+    private readonly IDatabaseContextFactory _databaseContextFactory;
+    private readonly IScriptProvider _scriptProvider;
+    private readonly IOptionsMonitor<SqlQueueOptions> _sqlQueueOptions;
+
+    public SqlQueueFactory(IOptionsMonitor<SqlQueueOptions> sqlQueueOptions, IScriptProvider scriptProvider, IDatabaseContextFactory databaseContextFactory, ICancellationTokenSource cancellationTokenSource)
     {
-        private readonly IDatabaseContextFactory _databaseContextFactory;
-        private readonly IDatabaseGateway _databaseGateway;
-        private readonly ICancellationTokenSource _cancellationTokenSource;
-        private readonly IOptionsMonitor<SqlQueueOptions> _sqlQueueOptions;
-        private readonly IScriptProvider _scriptProvider;
+        _sqlQueueOptions = Guard.AgainstNull(sqlQueueOptions);
+        _scriptProvider = Guard.AgainstNull(scriptProvider);
+        _databaseContextFactory = Guard.AgainstNull(databaseContextFactory);
+        _cancellationTokenSource = Guard.AgainstNull(cancellationTokenSource);
+    }
 
-        public SqlQueueFactory(IOptionsMonitor<SqlQueueOptions> sqlQueueOptions, IScriptProvider scriptProvider, IDatabaseContextFactory databaseContextFactory, IDatabaseGateway databaseGateway, ICancellationTokenSource cancellationTokenSource)
+    public string Scheme => "sql";
+
+    public IQueue Create(Uri uri)
+    {
+        var queueUri = new QueueUri(Guard.AgainstNull(uri)).SchemeInvariant(Scheme);
+        var sqlQueueOptions = _sqlQueueOptions.Get(queueUri.ConfigurationName);
+
+        if (sqlQueueOptions == null)
         {
-            _sqlQueueOptions = Guard.AgainstNull(sqlQueueOptions, nameof(sqlQueueOptions));
-            _scriptProvider = Guard.AgainstNull(scriptProvider, nameof(scriptProvider));
-            _databaseContextFactory = Guard.AgainstNull(databaseContextFactory, nameof(databaseContextFactory));
-            _databaseGateway = Guard.AgainstNull(databaseGateway, nameof(databaseGateway));
-            _cancellationTokenSource = Guard.AgainstNull(cancellationTokenSource, nameof(cancellationTokenSource));
+            throw new InvalidOperationException(string.Format(Esb.Resources.QueueConfigurationNameException, queueUri.ConfigurationName));
         }
 
-        public string Scheme => "sql";
-
-        public IQueue Create(Uri uri)
-        {
-            Guard.AgainstNull(uri, nameof(uri));
-
-            var queueUri = new QueueUri(uri).SchemeInvariant(Scheme);
-            var sqlQueueOptions = _sqlQueueOptions.Get(queueUri.ConfigurationName);
-
-            if (sqlQueueOptions == null)
-            {
-                throw new InvalidOperationException(string.Format(Esb.Resources.QueueConfigurationNameException, queueUri.ConfigurationName));
-            }
-
-            return new SqlQueue(queueUri, sqlQueueOptions, _scriptProvider, _databaseContextFactory, _databaseGateway, _cancellationTokenSource.Get().Token);
-        }
+        return new SqlQueue(queueUri, sqlQueueOptions, _scriptProvider, _databaseContextFactory, _cancellationTokenSource.Get().Token);
     }
 }

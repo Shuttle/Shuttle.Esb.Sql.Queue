@@ -1,9 +1,8 @@
-﻿namespace Shuttle.Esb.Sql.Queue
-{
-    public class SqlQueueOptions
-    {
-        public const string SectionName = "Shuttle:SqlQueue";
+﻿namespace Shuttle.Esb.Sql.Queue;
 
-        public string ConnectionStringName { get; set; }
-    }
+public class SqlQueueOptions
+{
+    public const string SectionName = "Shuttle:SqlQueue";
+
+    public string ConnectionStringName { get; set; } = string.Empty;
 }

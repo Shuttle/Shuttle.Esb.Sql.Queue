@@ -1,1 +1,0 @@
-select top {0} MessageBody from [dbo].[{1}] order by SequenceId

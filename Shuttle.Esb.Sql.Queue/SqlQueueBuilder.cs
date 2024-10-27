@@ -2,30 +2,28 @@
 using Microsoft.Extensions.DependencyInjection;
 using Shuttle.Core.Contract;
 
-namespace Shuttle.Esb.Sql.Queue
+namespace Shuttle.Esb.Sql.Queue;
+
+public class SqlQueueBuilder
 {
-    public class SqlQueueBuilder
+    internal readonly Dictionary<string, SqlQueueOptions> SqlQueueOptions = new();
+
+    public SqlQueueBuilder(IServiceCollection services)
     {
-        internal readonly Dictionary<string, SqlQueueOptions> SqlQueueOptions = new Dictionary<string, SqlQueueOptions>();
-        public IServiceCollection Services { get; }
+        Services = Guard.AgainstNull(services);
+    }
 
-        public SqlQueueBuilder(IServiceCollection services)
-        {
-            Guard.AgainstNull(services, nameof(services));
+    public IServiceCollection Services { get; }
 
-            Services = services;
-        }
+    public SqlQueueBuilder AddOptions(string name, SqlQueueOptions sqlQueueOptions)
+    {
+        Guard.AgainstNullOrEmptyString(name);
+        Guard.AgainstNull(sqlQueueOptions);
 
-        public SqlQueueBuilder AddOptions(string name, SqlQueueOptions sqlQueueOptions)
-        {
-            Guard.AgainstNullOrEmptyString(name, nameof(name));
-            Guard.AgainstNull(sqlQueueOptions, nameof(sqlQueueOptions));
+        SqlQueueOptions.Remove(name);
 
-            SqlQueueOptions.Remove(name);
+        SqlQueueOptions.Add(name, sqlQueueOptions);
 
-            SqlQueueOptions.Add(name, sqlQueueOptions);
-
-            return this;
-        }
+        return this;
     }
 }

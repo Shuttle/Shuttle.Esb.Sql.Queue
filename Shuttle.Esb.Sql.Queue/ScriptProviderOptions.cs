@@ -1,6 +1,5 @@
-﻿namespace Shuttle.Esb.Sql.Queue
+﻿namespace Shuttle.Esb.Sql.Queue;
+
+public class ScriptProviderOptions : Core.Data.ScriptProviderOptions
 {
-	public class ScriptProviderOptions : Core.Data.ScriptProviderOptions
-	{
-	}
 }

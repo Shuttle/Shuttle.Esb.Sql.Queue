@@ -1,6 +1,5 @@
-﻿namespace Shuttle.Esb.Sql.Queue
+﻿namespace Shuttle.Esb.Sql.Queue;
+
+public interface IScriptProvider : Core.Data.IScriptProvider
 {
-	public interface IScriptProvider : Core.Data.IScriptProvider
-	{
-	}
 }

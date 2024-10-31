@@ -81,6 +81,7 @@ public class SqlQueue : IQueue, ICreateQueue, IDropQueue, IPurgeQueue
 
         try
         {
+            using (new DatabaseContextScope())
             await using (var databaseContext = _databaseContextFactory.Create(_sqlQueueOptions.ConnectionStringName))
             {
                 var query = new Query(_removeQueryStatement)
@@ -120,6 +121,7 @@ public class SqlQueue : IQueue, ICreateQueue, IDropQueue, IPurgeQueue
 
         try
         {
+            using (new DatabaseContextScope())
             await using (var databaseContext = _databaseContextFactory.Create(_sqlQueueOptions.ConnectionStringName))
             {
                 await databaseContext.ExecuteAsync(_createQuery!, _cancellationToken).ConfigureAwait(false);
@@ -156,6 +158,7 @@ public class SqlQueue : IQueue, ICreateQueue, IDropQueue, IPurgeQueue
 
         try
         {
+            using (new DatabaseContextScope())
             await using (var databaseContext = _databaseContextFactory.Create(_sqlQueueOptions.ConnectionStringName))
             {
                 if (!await ExistsAsync(databaseContext).ConfigureAwait(false))
@@ -198,6 +201,7 @@ public class SqlQueue : IQueue, ICreateQueue, IDropQueue, IPurgeQueue
 
         try
         {
+            using (new DatabaseContextScope())
             await using (var databaseContext = _databaseContextFactory.Create(_sqlQueueOptions.ConnectionStringName))
             {
                 await databaseContext.ExecuteAsync(
@@ -245,6 +249,7 @@ public class SqlQueue : IQueue, ICreateQueue, IDropQueue, IPurgeQueue
 
         try
         {
+            using (new DatabaseContextScope())
             await using (var databaseContext = _databaseContextFactory.Create(_sqlQueueOptions.ConnectionStringName))
             {
                 var query = new Query(_scriptProvider.Get(_sqlQueueOptions.ConnectionStringName, Script.QueueDequeue, Uri.QueueName))
@@ -302,6 +307,7 @@ public class SqlQueue : IQueue, ICreateQueue, IDropQueue, IPurgeQueue
         _removeQueryStatement = _scriptProvider.Get(_sqlQueueOptions.ConnectionStringName, Script.QueueRemove, Uri.QueueName);
         _dequeueIdQueryStatement = _scriptProvider.Get(_sqlQueueOptions.ConnectionStringName, Script.QueueDequeueId, Uri.QueueName);
 
+        using (new DatabaseContextScope())
         using (var databaseContext = _databaseContextFactory.Create(_sqlQueueOptions.ConnectionStringName))
         {
             databaseContext.ExecuteAsync(new Query(_scriptProvider.Get(_sqlQueueOptions.ConnectionStringName, Script.QueueRelease, Uri.QueueName))
@@ -332,6 +338,7 @@ public class SqlQueue : IQueue, ICreateQueue, IDropQueue, IPurgeQueue
 
         try
         {
+            using (new DatabaseContextScope())
             await using (var databaseContext = _databaseContextFactory.Create(_sqlQueueOptions.ConnectionStringName))
             {
                 var result = await databaseContext.GetScalarAsync<int>(_countQuery!, _cancellationToken).ConfigureAwait(false) == 0;
@@ -372,6 +379,7 @@ public class SqlQueue : IQueue, ICreateQueue, IDropQueue, IPurgeQueue
 
         try
         {
+            using (new DatabaseContextScope())
             await using (var databaseContext = _databaseContextFactory.Create(_sqlQueueOptions.ConnectionStringName))
             {
                 if (!await ExistsAsync(databaseContext).ConfigureAwait(false))
@@ -416,6 +424,7 @@ public class SqlQueue : IQueue, ICreateQueue, IDropQueue, IPurgeQueue
 
         try
         {
+            using (new DatabaseContextScope())
             await using (var databaseContext = _databaseContextFactory.Create(_sqlQueueOptions.ConnectionStringName))
             await using (var transaction = await databaseContext.BeginTransactionAsync().ConfigureAwait(false))
             {

@@ -16,6 +16,11 @@ public class SqlQueueOptionsValidator : IValidateOptions<SqlQueueOptions>
             return ValidateOptionsResult.Fail(string.Format(Esb.Resources.QueueConfigurationItemException, name, nameof(options.ConnectionStringName)));
         }
 
+        if (string.IsNullOrWhiteSpace(options.Schema))
+        {
+            return ValidateOptionsResult.Fail(string.Format(Esb.Resources.QueueConfigurationItemException, name, nameof(options.Schema)));
+        }
+
         return ValidateOptionsResult.Success;
     }
 }

@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <nullable>enable</nullable>
   </PropertyGroup>
@@ -12,16 +12,6 @@
     <None Include=".package\package.nuspec.template" />
     <None Include=".package\Shuttle.NuGetPackager.MSBuild.dll" />
     <None Include=".package\Shuttle.NuGetPackager.targets" />
-    <EmbeddedResource Include=".scripts\Microsoft.Data.SqlClient\QueueCount.sql" />
-    <EmbeddedResource Include=".scripts\Microsoft.Data.SqlClient\QueueCreate.sql" />
-    <EmbeddedResource Include=".scripts\Microsoft.Data.SqlClient\QueueDequeue.sql" />
-    <EmbeddedResource Include=".scripts\Microsoft.Data.SqlClient\QueueDequeueId.sql" />
-    <EmbeddedResource Include=".scripts\Microsoft.Data.SqlClient\QueueDrop.sql" />
-    <EmbeddedResource Include=".scripts\Microsoft.Data.SqlClient\QueueEnqueue.sql" />
-    <EmbeddedResource Include=".scripts\Microsoft.Data.SqlClient\QueueExists.sql" />
-    <EmbeddedResource Include=".scripts\Microsoft.Data.SqlClient\QueuePurge.sql" />
-    <EmbeddedResource Include=".scripts\Microsoft.Data.SqlClient\QueueRelease.sql" />
-    <EmbeddedResource Include=".scripts\Microsoft.Data.SqlClient\QueueRemove.sql" />
   </ItemGroup>
 
   <ItemGroup>
@@ -42,6 +32,10 @@
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="SqlServer\" />
   </ItemGroup>
 
 </Project>

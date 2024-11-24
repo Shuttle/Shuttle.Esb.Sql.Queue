@@ -28,8 +28,11 @@ public class SqlConfiguration
             {
                 builder.AddOptions("shuttle", new()
                 {
+                    Schema = "QueueFixture",
                     ConnectionStringName = "shuttle"
                 });
+
+                builder.UseSqlServer();
             });
 
         return services;

@@ -26,4 +26,10 @@ public class SqlQueueBuilder
 
         return this;
     }
+    public SqlQueueBuilder UseSqlServer()
+    {
+        Services.AddSingleton<IQueryFactory, SqlServer.QueryFactory>();
+
+        return this;
+    }
 }

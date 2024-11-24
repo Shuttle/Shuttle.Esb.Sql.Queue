@@ -21,10 +21,10 @@ public static class ServiceCollectionExtensions
             services.AddOptions<SqlQueueOptions>(pair.Key).Configure(options =>
             {
                 options.ConnectionStringName = pair.Value.ConnectionStringName;
+                options.Schema = pair.Value.Schema;
             });
         }
 
-        services.TryAddSingleton<IScriptProvider, ScriptProvider>();
         services.AddSingleton<IQueueFactory, SqlQueueFactory>();
 
         return services;

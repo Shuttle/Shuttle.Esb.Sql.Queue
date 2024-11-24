@@ -14,7 +14,6 @@ public class SqlQueue : IQueue, ICreateQueue, IDropQueue, IPurgeQueue
 {
     private static readonly SemaphoreSlim Lock = new(1, 1);
 
-    private readonly string _baseDirectory;
     private readonly CancellationToken _cancellationToken;
     private readonly IDatabaseContextFactory _databaseContextFactory;
     private readonly IQueryFactory _queryFactory;
@@ -35,8 +34,7 @@ public class SqlQueue : IQueue, ICreateQueue, IDropQueue, IPurgeQueue
         _queryFactory = queryFactory;
         _cancellationToken = cancellationToken;
 
-        _baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
-        _unacknowledgedHash = MD5.Create().ComputeHash(Encoding.ASCII.GetBytes($@"{Environment.MachineName}\\{_baseDirectory}"));
+        _unacknowledgedHash = MD5.Create().ComputeHash(Encoding.ASCII.GetBytes($@"{Environment.MachineName}\\{AppDomain.CurrentDomain.BaseDirectory}"));
     }
 
     public async Task CreateAsync()

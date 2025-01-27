@@ -3,7 +3,7 @@
 <package>
 	<metadata>
 		<id>Shuttle.Esb.Sql.Queue</id>
-		<version>16.0.0</version>
+		<version>16.0.1</version>
 		<authors>Eben Roux</authors>
 		<owners>Eben Roux</owners>
 		<license type="expression">BSD-3-Clause</license>
@@ -13,7 +13,7 @@
 		<repository type="git" url="https://github.com/Shuttle/Shuttle.Esb.Sql.Queue.git" />
 		<projectUrl>https://github.com/Shuttle/Shuttle.Esb.Sql.Queue</projectUrl>
 		<description>Sql-based implementation of IQueue interface for use with Shuttle.Esb.</description>
-		<copyright>Copyright (c) 2024, Eben Roux</copyright>
+		<copyright>Copyright (c) 2025, Eben Roux</copyright>
 		<tags>sqlqueue sql-based-queue sqlbroker sql-broker</tags>
 		<dependencies>
       <dependency id="Shuttle.Core.Data" version="17.0.0" />

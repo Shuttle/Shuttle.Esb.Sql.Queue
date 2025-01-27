@@ -429,6 +429,7 @@ namespace Shuttle.Esb.Sql.Queue
 
             using (_databaseContextFactory.Create(_sqlQueueOptions.ConnectionStringName))
             {
+                _databaseGateway.Execute(_createQuery, _cancellationToken);
                 _databaseGateway.Execute(new Query(_scriptProvider.Get(_sqlQueueOptions.ConnectionStringName, Script.QueueRelease, Uri.QueueName))
                     .AddParameter(QueueColumns.UnacknowledgedHash, _unacknowledgedHash));
             }

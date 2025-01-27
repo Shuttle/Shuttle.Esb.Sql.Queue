@@ -142,7 +142,7 @@ END
         Guard.AgainstNullOrEmptyString(schema);
         Guard.AgainstNullOrEmptyString(queueName);
 
-        return new Query($@"insert into [{schema}].[{queueName}] (MessageId, MessageBody) values (@MessageId, @MessageBody)")
+        return new Query($@"INSERT INTO [{schema}].[{queueName}] (MessageId, MessageBody) values (@MessageId, @MessageBody)")
             .AddParameter(Columns.MessageId, messageId)
             .AddParameter(Columns.MessageBody, messageBody);
     }

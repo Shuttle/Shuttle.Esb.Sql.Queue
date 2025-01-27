@@ -8,7 +8,7 @@ Sql RDBMS implementation of the `IQueue` interface for use with Shuttle.Esb whic
 
 ## Supported providers
 
-Currently only the `System.Data.SqlClient` and `Microsoft.Data.SqlClient` provider names are supported but this can easily be extended.  Feel free to give it a bash and please send a pull request if you *do* go this route.  You are welcome to create an issue and assistance will be provided where able.
+Currently only the `Microsoft.Data.SqlClient` provider is supported but this can be extended.  You are welcome to create an issue and assistance will be provided where able; else a pull request would be most welcome.
 
 ## Configuration
 
@@ -17,7 +17,7 @@ TThe URI structure is `sql://configuration-name/queue-name`.
 ```c#
 services.AddDataAccess(builder =>
 {
-	builder.AddConnectionString("shuttle", "System.Data.SqlClient", "server=.;database=shuttle;user id=sa;password=Pass!000");
+	builder.AddConnectionString("shuttle", "Microsoft.Data.SqlClient", "server=.;database=shuttle;user id=sa;password=Pass!000");
 });
 
 services.AddSqlQueue(builder =>

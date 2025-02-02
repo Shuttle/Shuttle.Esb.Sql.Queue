@@ -8,607 +8,406 @@ using Shuttle.Core.Contract;
 using Shuttle.Core.Data;
 using Shuttle.Core.Streams;
 
-namespace Shuttle.Esb.Sql.Queue
+namespace Shuttle.Esb.Sql.Queue;
+
+public class SqlQueue : IQueue, ICreateQueue, IDropQueue, IPurgeQueue
 {
-    public class SqlQueue : IQueue, ICreateQueue, IDropQueue, IPurgeQueue
+    private static readonly SemaphoreSlim Lock = new(1, 1);
+
+    private readonly CancellationToken _cancellationToken;
+    private readonly IDatabaseContextFactory _databaseContextFactory;
+    private readonly IQueryFactory _queryFactory;
+
+    private readonly SqlQueueOptions _sqlQueueOptions;
+    private readonly byte[] _unacknowledgedHash;
+
+    private bool _initialized;
+
+    public SqlQueue(QueueUri uri, SqlQueueOptions sqlQueueOptions, IDatabaseContextFactory databaseContextFactory, IQueryFactory queryFactory, CancellationToken cancellationToken)
     {
-        private static readonly SemaphoreSlim Lock = new SemaphoreSlim(1, 1);
+        Uri = Guard.AgainstNull(uri);
 
-        private readonly string _baseDirectory;
-        private readonly CancellationToken _cancellationToken;
-        private readonly IDatabaseContextFactory _databaseContextFactory;
-        private readonly IDatabaseGateway _databaseGateway;
+        _sqlQueueOptions = Guard.AgainstNull(sqlQueueOptions);
+        _databaseContextFactory = Guard.AgainstNull(databaseContextFactory);
+        _queryFactory = Guard.AgainstNull(queryFactory);
 
-        private readonly string _machineName;
-        private readonly IScriptProvider _scriptProvider;
+        _queryFactory = queryFactory;
+        _cancellationToken = cancellationToken;
 
-        private readonly SqlQueueOptions _sqlQueueOptions;
-        private readonly byte[] _unacknowledgedHash;
+        _unacknowledgedHash = MD5.Create().ComputeHash(Encoding.ASCII.GetBytes($@"{Environment.MachineName}\\{AppDomain.CurrentDomain.BaseDirectory}"));
+    }
 
-        private IQuery _countQuery;
-        private IQuery _createQuery;
-        private string _dequeueIdQueryStatement;
-        private IQuery _dropQuery;
-        private string _enqueueQueryStatement;
-        private IQuery _existsQuery;
-        private bool _initialized;
-        private IQuery _purgeQuery;
-
-        private string _removeQueryStatement;
-
-        public SqlQueue(QueueUri uri, SqlQueueOptions sqlQueueOptions, IScriptProvider scriptProvider, IDatabaseContextFactory databaseContextFactory, IDatabaseGateway databaseGateway, CancellationToken cancellationToken)
+    public async Task CreateAsync()
+    {
+        if (_cancellationToken.IsCancellationRequested)
         {
-            Uri = Guard.AgainstNull(uri, nameof(uri));
-
-            _sqlQueueOptions = Guard.AgainstNull(sqlQueueOptions, nameof(sqlQueueOptions));
-            _scriptProvider = Guard.AgainstNull(scriptProvider, nameof(scriptProvider));
-            _databaseContextFactory = Guard.AgainstNull(databaseContextFactory, nameof(databaseContextFactory));
-            _databaseGateway = Guard.AgainstNull(databaseGateway, nameof(databaseGateway));
-
-            _cancellationToken = cancellationToken;
-
-            _machineName = Environment.MachineName;
-            _baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
-            _unacknowledgedHash = MD5.Create().ComputeHash(Encoding.ASCII.GetBytes($@"{_machineName}\\{_baseDirectory}"));
+            Operation?.Invoke(this, new("[create/cancelled]"));
+            return;
         }
 
-        public void Create()
+        Operation?.Invoke(this, new("[create/starting]"));
+
+        await Lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+
+        if (!_initialized)
         {
-            CreateAsync(true).GetAwaiter().GetResult();
+            Initialize();
         }
 
-        public async Task CreateAsync()
+        try
         {
-            await CreateAsync(false).ConfigureAwait(false);
-        }
-
-        public void Drop()
-        {
-            DropAsync(true).GetAwaiter().GetResult();
-        }
-
-        public async Task DropAsync()
-        {
-            await DropAsync(false).ConfigureAwait(false);
-        }
-
-        public void Purge()
-        {
-            PurgeAsync(true).GetAwaiter().GetResult();
-        }
-
-        public async Task PurgeAsync()
-        {
-            await PurgeAsync(false).ConfigureAwait(false);
-        }
-
-        public async ValueTask<bool> IsEmptyAsync()
-        {
-            return await IsEmptyAsync(false).ConfigureAwait(false);
-        }
-
-        public void Enqueue(TransportMessage transportMessage, Stream stream)
-        {
-            EnqueueAsync(transportMessage, stream, true).GetAwaiter().GetResult();
-        }
-
-        public async Task EnqueueAsync(TransportMessage transportMessage, Stream stream)
-        {
-            await EnqueueAsync(transportMessage, stream, false).ConfigureAwait(false);
-        }
-
-        public async Task ReleaseAsync(object acknowledgementToken)
-        {
-            await ReleaseAsync(acknowledgementToken, false).ConfigureAwait(false);
-        }
-
-        public QueueUri Uri { get; }
-        public bool IsStream => false;
-        public event EventHandler<MessageEnqueuedEventArgs> MessageEnqueued;
-        public event EventHandler<MessageAcknowledgedEventArgs> MessageAcknowledged;
-        public event EventHandler<MessageReleasedEventArgs> MessageReleased;
-        public event EventHandler<MessageReceivedEventArgs> MessageReceived;
-        public event EventHandler<OperationEventArgs> Operation;
-
-        public bool IsEmpty()
-        {
-            return IsEmptyAsync(true).GetAwaiter().GetResult();
-        }
-
-        public ReceivedMessage GetMessage()
-        {
-            return GetMessageAsync(true).GetAwaiter().GetResult();
-        }
-
-        public async Task<ReceivedMessage> GetMessageAsync()
-        {
-            return await GetMessageAsync(false).ConfigureAwait(false);
-        }
-
-        public void Acknowledge(object acknowledgementToken)
-        {
-            AcknowledgeAsync(acknowledgementToken, true).GetAwaiter().GetResult();
-        }
-
-        public async Task AcknowledgeAsync(object acknowledgementToken)
-        {
-            await AcknowledgeAsync(acknowledgementToken, false).ConfigureAwait(false);
-        }
-
-        public void Release(object acknowledgementToken)
-        {
-            ReleaseAsync(acknowledgementToken, true).GetAwaiter().GetResult();
-        }
-
-        private async Task AcknowledgeAsync(object acknowledgementToken, bool sync)
-        {
-            Guard.AgainstNull(acknowledgementToken, nameof(acknowledgementToken));
-
-            if (_cancellationToken.IsCancellationRequested)
+            using (new DatabaseContextScope())
+            await using (var databaseContext = _databaseContextFactory.Create(_sqlQueueOptions.ConnectionStringName))
             {
-                Operation?.Invoke(this, new OperationEventArgs("[acknowledge/cancelled]"));
-                return;
+                await databaseContext.ExecuteAsync(_queryFactory.Create(_sqlQueueOptions.Schema, Uri.QueueName), _cancellationToken).ConfigureAwait(false);
             }
+        }
+        catch (OperationCanceledException)
+        {
+            Operation?.Invoke(this, new("[create/cancelled]"));
+        }
+        finally
+        {
+            Lock.Release();
+        }
 
-            await Lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+        Operation?.Invoke(this, new("[create/completed]"));
+    }
 
-            if (!_initialized)
+    public async Task DropAsync()
+    {
+        if (_cancellationToken.IsCancellationRequested)
+        {
+            Operation?.Invoke(this, new("[drop/cancelled]"));
+            return;
+        }
+
+        Operation?.Invoke(this, new("[drop/starting]"));
+
+        await Lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+
+        if (!_initialized)
+        {
+            Initialize();
+        }
+
+        try
+        {
+            using (new DatabaseContextScope())
+            await using (var databaseContext = _databaseContextFactory.Create(_sqlQueueOptions.ConnectionStringName))
             {
-                Initialize();
-            }
-
-            try
-            {
-                var sequenceId = (int)acknowledgementToken;
-
-                if (sequenceId == 0)
+                if (!await ExistsAsync(databaseContext).ConfigureAwait(false))
                 {
                     return;
                 }
 
-                await using (_databaseContextFactory.Create(_sqlQueueOptions.ConnectionStringName))
-                {
-                    var query = new Query(_removeQueryStatement)
-                        .AddParameter(QueueColumns.SequenceId, sequenceId);
-
-                    if (sync)
-                    {
-                        _databaseGateway.Execute(query, _cancellationToken);
-                    }
-                    else
-                    {
-                        await _databaseGateway.ExecuteAsync(query, _cancellationToken).ConfigureAwait(false);
-                    }
-                }
-
-                MessageAcknowledged?.Invoke(this, new MessageAcknowledgedEventArgs(acknowledgementToken));
-            }
-            catch (OperationCanceledException)
-            {
-                Operation?.Invoke(this, new OperationEventArgs("[acknowledge/cancelled]"));
-            }
-            finally
-            {
-                Lock.Release();
+                await databaseContext.ExecuteAsync(_queryFactory.Drop(_sqlQueueOptions.Schema, Uri.QueueName), _cancellationToken).ConfigureAwait(false);
             }
         }
-
-        private async Task CreateAsync(bool sync)
+        catch (OperationCanceledException)
         {
-            if (_cancellationToken.IsCancellationRequested)
-            {
-                Operation?.Invoke(this, new OperationEventArgs("[create/cancelled]"));
-                return;
-            }
-
-            Operation?.Invoke(this, new OperationEventArgs("[create/starting]"));
-
-            await Lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
-
-            if (!_initialized)
-            {
-                Initialize();
-            }
-
-            try
-            {
-                await using (_databaseContextFactory.Create(_sqlQueueOptions.ConnectionStringName))
-                {
-                    if (sync)
-                    {
-                        _databaseGateway.Execute(_createQuery, _cancellationToken);
-                    }
-                    else
-                    {
-                        await _databaseGateway.ExecuteAsync(_createQuery, _cancellationToken).ConfigureAwait(false);
-                    }
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                Operation?.Invoke(this, new OperationEventArgs("[create/cancelled]"));
-            }
-            finally
-            {
-                Lock.Release();
-            }
-
-            Operation?.Invoke(this, new OperationEventArgs("[create/completed]"));
+            Operation?.Invoke(this, new("[drop/cancelled]"));
+        }
+        finally
+        {
+            Lock.Release();
         }
 
-        private async Task DropAsync(bool sync)
+        Operation?.Invoke(this, new("[drop/completed]"));
+    }
+
+    public async Task PurgeAsync()
+    {
+        if (_cancellationToken.IsCancellationRequested)
         {
-            if (_cancellationToken.IsCancellationRequested)
-            {
-                Operation?.Invoke(this, new OperationEventArgs("[drop/cancelled]"));
-                return;
-            }
-
-            Operation?.Invoke(this, new OperationEventArgs("[drop/starting]"));
-
-            await Lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
-
-            if (!_initialized)
-            {
-                Initialize();
-            }
-
-            try
-            {
-                await using (_databaseContextFactory.Create(_sqlQueueOptions.ConnectionStringName))
-                {
-                    if (sync)
-                    {
-                        if (!ExistsAsync(true).GetAwaiter().GetResult())
-                        {
-                            return;
-                        }
-
-                        _databaseGateway.Execute(_dropQuery, _cancellationToken);
-                    }
-                    else
-                    {
-                        if (!await ExistsAsync(false).ConfigureAwait(false))
-                        {
-                            return;
-                        }
-
-                        await _databaseGateway.ExecuteAsync(_dropQuery, _cancellationToken).ConfigureAwait(false);
-                    }
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                Operation?.Invoke(this, new OperationEventArgs("[drop/cancelled]"));
-            }
-            finally
-            {
-                Lock.Release();
-            }
-
-            Operation?.Invoke(this, new OperationEventArgs("[drop/completed]"));
+            Operation?.Invoke(this, new("[purge/cancelled]"));
+            return;
         }
 
-        private async Task EnqueueAsync(TransportMessage transportMessage, Stream stream, bool sync)
+        Operation?.Invoke(this, new("[purge/starting]"));
+
+        await Lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+
+        if (!_initialized)
         {
-            Guard.AgainstNull(transportMessage, nameof(transportMessage));
-            Guard.AgainstNull(stream, nameof(stream));
-
-            if (_cancellationToken.IsCancellationRequested)
-            {
-                Operation?.Invoke(this, new OperationEventArgs("[enqueue/cancelled]"));
-                return;
-            }
-
-            await Lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
-
-            if (!_initialized)
-            {
-                Initialize();
-            }
-
-            try
-            {
-                await using (_databaseContextFactory.Create(_sqlQueueOptions.ConnectionStringName))
-                {
-                    if (sync)
-                    {
-                        _databaseGateway.Execute(
-                            new Query(_enqueueQueryStatement)
-                                .AddParameter(QueueColumns.MessageId, transportMessage.MessageId)
-                                .AddParameter(QueueColumns.MessageBody, stream.ToBytes()), _cancellationToken);
-                    }
-                    else
-                    {
-                        await _databaseGateway.ExecuteAsync(
-                            new Query(_enqueueQueryStatement)
-                                .AddParameter(QueueColumns.MessageId, transportMessage.MessageId)
-                                .AddParameter(QueueColumns.MessageBody, await stream.ToBytesAsync().ConfigureAwait(false)), _cancellationToken).ConfigureAwait(false);
-                    }
-
-                    MessageEnqueued?.Invoke(this, new MessageEnqueuedEventArgs(transportMessage, stream));
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                Operation?.Invoke(this, new OperationEventArgs("[enqueue/cancelled]"));
-            }
-            finally
-            {
-                Lock.Release();
-            }
+            Initialize();
         }
 
-        private async ValueTask<bool> ExistsAsync(bool sync)
+        try
         {
-            if (!_initialized)
+            using (new DatabaseContextScope())
+            await using (var databaseContext = _databaseContextFactory.Create(_sqlQueueOptions.ConnectionStringName))
             {
-                Initialize();
-            }
+                if (!await ExistsAsync(databaseContext).ConfigureAwait(false))
+                {
+                    return;
+                }
 
-            return sync
-                ? _databaseGateway.GetScalar<int>(_existsQuery, _cancellationToken) == 1
-                : await _databaseGateway.GetScalarAsync<int>(_existsQuery, _cancellationToken).ConfigureAwait(false) == 1;
+                await databaseContext.ExecuteAsync(_queryFactory.Purge(_sqlQueueOptions.Schema, Uri.QueueName), _cancellationToken).ConfigureAwait(false);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            Operation?.Invoke(this, new("[purge/cancelled]"));
+        }
+        finally
+        {
+            Lock.Release();
         }
 
-        private async Task<ReceivedMessage> GetMessageAsync(bool sync)
+        Operation?.Invoke(this, new("[purge/completed]"));
+    }
+
+    public QueueUri Uri { get; }
+    public bool IsStream => false;
+
+    public event EventHandler<MessageEnqueuedEventArgs>? MessageEnqueued;
+    public event EventHandler<MessageAcknowledgedEventArgs>? MessageAcknowledged;
+    public event EventHandler<MessageReleasedEventArgs>? MessageReleased;
+    public event EventHandler<MessageReceivedEventArgs>? MessageReceived;
+    public event EventHandler<OperationEventArgs>? Operation;
+
+    public async Task AcknowledgeAsync(object acknowledgementToken)
+    {
+        if (Guard.AgainstNull(acknowledgementToken) is not (long sequenceId and > 0))
         {
-            if (_cancellationToken.IsCancellationRequested)
+            return;
+        }
+
+        if (_cancellationToken.IsCancellationRequested)
+        {
+            Operation?.Invoke(this, new("[acknowledge/cancelled]"));
+            return;
+        }
+
+        await Lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+
+        if (!_initialized)
+        {
+            Initialize();
+        }
+
+        try
+        {
+            using (new DatabaseContextScope())
+            await using (var databaseContext = _databaseContextFactory.Create(_sqlQueueOptions.ConnectionStringName))
             {
-                Operation?.Invoke(this, new OperationEventArgs("[get-message/cancelled]"));
-                return null;
+                await databaseContext.ExecuteAsync(_queryFactory.Acknowledge(_sqlQueueOptions.Schema, Uri.QueueName, sequenceId), _cancellationToken).ConfigureAwait(false);
             }
 
-            await Lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+            MessageAcknowledged?.Invoke(this, new(acknowledgementToken));
+        }
+        catch (OperationCanceledException)
+        {
+            Operation?.Invoke(this, new("[acknowledge/cancelled]"));
+        }
+        finally
+        {
+            Lock.Release();
+        }
+    }
 
-            if (!_initialized)
+    public async Task EnqueueAsync(TransportMessage transportMessage, Stream stream)
+    {
+        Guard.AgainstNull(transportMessage);
+        Guard.AgainstNull(stream);
+
+        if (_cancellationToken.IsCancellationRequested)
+        {
+            Operation?.Invoke(this, new("[enqueue/cancelled]"));
+            return;
+        }
+
+        await Lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+
+        if (!_initialized)
+        {
+            Initialize();
+        }
+
+        try
+        {
+            using (new DatabaseContextScope())
+            await using (var databaseContext = _databaseContextFactory.Create(_sqlQueueOptions.ConnectionStringName))
             {
-                Initialize();
+                await databaseContext.ExecuteAsync(_queryFactory.Enqueue(_sqlQueueOptions.Schema, Uri.QueueName, transportMessage.MessageId, await stream.ToBytesAsync()), _cancellationToken);
+
+                MessageEnqueued?.Invoke(this, new(transportMessage, stream));
             }
+        }
+        catch (OperationCanceledException)
+        {
+            Operation?.Invoke(this, new("[enqueue/cancelled]"));
+        }
+        finally
+        {
+            Lock.Release();
+        }
+    }
 
-            try
-            {
-                await using (_databaseContextFactory.Create(_sqlQueueOptions.ConnectionStringName).ConfigureAwait(false))
-                {
-                    var query = new Query(_scriptProvider.Get(_sqlQueueOptions.ConnectionStringName, Script.QueueDequeue, Uri.QueueName))
-                        .AddParameter(QueueColumns.MachineName, _machineName)
-                        .AddParameter(QueueColumns.QueueName, Uri.QueueName)
-                        .AddParameter(QueueColumns.UnacknowledgedHash, _unacknowledgedHash)
-                        .AddParameter(QueueColumns.UnacknowledgedId, Guid.NewGuid());
-
-                    var row = sync
-                        ? _databaseGateway.GetRow(query, _cancellationToken)
-                        : await _databaseGateway.GetRowAsync(query, _cancellationToken).ConfigureAwait(true);
-
-                    if (row == null)
-                    {
-                        return null;
-                    }
-
-                    var result = new MemoryStream((byte[])row["MessageBody"]);
-
-                    var receivedMessage = new ReceivedMessage(result, QueueColumns.SequenceId.Value(row));
-
-                    if (receivedMessage != null)
-                    {
-                        MessageReceived?.Invoke(this, new MessageReceivedEventArgs(receivedMessage));
-                    }
-
-                    return receivedMessage;
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                Operation?.Invoke(this, new OperationEventArgs("[get-message/cancelled]"));
-            }
-            finally
-            {
-                Lock.Release();
-            }
-
+    public async Task<ReceivedMessage?> GetMessageAsync()
+    {
+        if (_cancellationToken.IsCancellationRequested)
+        {
+            Operation?.Invoke(this, new("[get-message/cancelled]"));
             return null;
         }
 
-        private void Initialize()
+        await Lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+
+        if (!_initialized)
         {
-            Operation?.Invoke(this, new OperationEventArgs("[initialize/starting]"));
-
-            _createQuery = new Query(_scriptProvider.Get(_sqlQueueOptions.ConnectionStringName, Script.QueueCreate, Uri.QueueName))
-                .AddParameter(QueueColumns.UnacknowledgedHash, _unacknowledgedHash)
-                .AddParameter(QueueColumns.MachineName, _machineName)
-                .AddParameter(QueueColumns.QueueName, Uri.QueueName)
-                .AddParameter(QueueColumns.BaseDirectory, _baseDirectory);
-
-            _existsQuery = new Query(_scriptProvider.Get(_sqlQueueOptions.ConnectionStringName, Script.QueueExists, Uri.QueueName));
-            _dropQuery = new Query(_scriptProvider.Get(_sqlQueueOptions.ConnectionStringName, Script.QueueDrop, Uri.QueueName));
-            _purgeQuery = new Query(_scriptProvider.Get(_sqlQueueOptions.ConnectionStringName, Script.QueuePurge, Uri.QueueName));
-            _countQuery = new Query(_scriptProvider.Get(_sqlQueueOptions.ConnectionStringName, Script.QueueCount, Uri.QueueName));
-            _enqueueQueryStatement = _scriptProvider.Get(_sqlQueueOptions.ConnectionStringName, Script.QueueEnqueue, Uri.QueueName);
-            _removeQueryStatement = _scriptProvider.Get(_sqlQueueOptions.ConnectionStringName, Script.QueueRemove, Uri.QueueName);
-            _dequeueIdQueryStatement = _scriptProvider.Get(_sqlQueueOptions.ConnectionStringName, Script.QueueDequeueId, Uri.QueueName);
-
-            using (_databaseContextFactory.Create(_sqlQueueOptions.ConnectionStringName))
-            {
-                _databaseGateway.Execute(_createQuery, _cancellationToken);
-                _databaseGateway.Execute(new Query(_scriptProvider.Get(_sqlQueueOptions.ConnectionStringName, Script.QueueRelease, Uri.QueueName))
-                    .AddParameter(QueueColumns.UnacknowledgedHash, _unacknowledgedHash));
-            }
-
-            _initialized = true;
-
-            Operation?.Invoke(this, new OperationEventArgs("[initialize/completed]"));
+            Initialize();
         }
 
-        private async ValueTask<bool> IsEmptyAsync(bool sync)
+        try
         {
-            if (_cancellationToken.IsCancellationRequested)
+            using (new DatabaseContextScope())
+            await using (var databaseContext = _databaseContextFactory.Create(_sqlQueueOptions.ConnectionStringName))
             {
-                Operation?.Invoke(this, new OperationEventArgs("[is-empty/cancelled]", true));
-                return true;
-            }
+                var row = await databaseContext.GetRowAsync(_queryFactory.GetMessage(_sqlQueueOptions.Schema, Uri.QueueName, _unacknowledgedHash), _cancellationToken).ConfigureAwait(true);
 
-            Operation?.Invoke(this, new OperationEventArgs("[is-empty/starting]"));
-
-            await Lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
-
-            if (!_initialized)
-            {
-                Initialize();
-            }
-
-            try
-            {
-                await using (_databaseContextFactory.Create(_sqlQueueOptions.ConnectionStringName))
+                if (row == null)
                 {
-                    var result = (sync
-                        ? _databaseGateway.GetScalar<int>(_countQuery, _cancellationToken)
-                        : await _databaseGateway.GetScalarAsync<int>(_countQuery, _cancellationToken).ConfigureAwait(false)) == 0;
-
-                    Operation?.Invoke(this, new OperationEventArgs("[is-empty]", result));
-
-                    return result;
+                    return null;
                 }
-            }
-            catch (OperationCanceledException)
-            {
-                Operation?.Invoke(this, new OperationEventArgs("[is-empty/cancelled]", true));
-            }
-            finally
-            {
-                Lock.Release();
-            }
 
+                var result = new MemoryStream((byte[])row["MessageBody"]);
+
+                var receivedMessage = new ReceivedMessage(result, Columns.SequenceId.Value(row));
+
+                if (receivedMessage != null)
+                {
+                    MessageReceived?.Invoke(this, new(receivedMessage));
+                }
+
+                return receivedMessage;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            Operation?.Invoke(this, new("[get-message/cancelled]"));
+        }
+        finally
+        {
+            Lock.Release();
+        }
+
+        return null;
+    }
+
+    public async ValueTask<bool> IsEmptyAsync()
+    {
+        if (_cancellationToken.IsCancellationRequested)
+        {
+            Operation?.Invoke(this, new("[is-empty/cancelled]", true));
             return true;
         }
 
-        public async Task PurgeAsync(bool sync)
+        Operation?.Invoke(this, new("[is-empty/starting]"));
+
+        await Lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+
+        if (!_initialized)
         {
-            if (_cancellationToken.IsCancellationRequested)
-            {
-                Operation?.Invoke(this, new OperationEventArgs("[purge/cancelled]"));
-                return;
-            }
-
-            Operation?.Invoke(this, new OperationEventArgs("[purge/starting]"));
-
-            await Lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
-
-            if (!_initialized)
-            {
-                Initialize();
-            }
-
-            try
-            {
-                await using (_databaseContextFactory.Create(_sqlQueueOptions.ConnectionStringName))
-                {
-                    if (sync)
-                    {
-                        if (!ExistsAsync(true).GetAwaiter().GetResult())
-                        {
-                            return;
-                        }
-
-                        _databaseGateway.Execute(_purgeQuery, _cancellationToken);
-                    }
-                    else
-                    {
-                        if (!await ExistsAsync(false).ConfigureAwait(false))
-                        {
-                            return;
-                        }
-
-                        await _databaseGateway.ExecuteAsync(_purgeQuery, _cancellationToken).ConfigureAwait(false);
-                    }
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                Operation?.Invoke(this, new OperationEventArgs("[purge/cancelled]"));
-            }
-            finally
-            {
-                Lock.Release();
-            }
-
-            Operation?.Invoke(this, new OperationEventArgs("[purge/completed]"));
+            Initialize();
         }
 
-        private async Task ReleaseAsync(object acknowledgementToken, bool sync)
+        try
         {
-            Guard.AgainstNull(acknowledgementToken, nameof(acknowledgementToken));
-
-            if (!(acknowledgementToken is int sequenceId) ||
-                sequenceId <= 0)
+            using (new DatabaseContextScope())
+            await using (var databaseContext = _databaseContextFactory.Create(_sqlQueueOptions.ConnectionStringName))
             {
-                return;
-            }
+                var result = await databaseContext.GetScalarAsync<int>(_queryFactory.Count(_sqlQueueOptions.Schema, Uri.QueueName), _cancellationToken).ConfigureAwait(false) == 0;
 
-            if (_cancellationToken.IsCancellationRequested)
-            {
-                Operation?.Invoke(this, new OperationEventArgs("[release/cancelled]"));
-                return;
-            }
+                Operation?.Invoke(this, new("[is-empty]", result));
 
-            await Lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
-
-            if (!_initialized)
-            {
-                Initialize();
-            }
-
-            try
-            {
-                using (var databaseContext = _databaseContextFactory.Create(_sqlQueueOptions.ConnectionStringName))
-                using (var transaction = sync ? databaseContext.BeginTransaction() : await databaseContext.BeginTransactionAsync().ConfigureAwait(false))
-                {
-                    var row = sync
-                        ? _databaseGateway.GetRow(
-                            new Query(_dequeueIdQueryStatement)
-                                .AddParameter(QueueColumns.SequenceId, sequenceId))
-                        : await _databaseGateway.GetRowAsync(
-                            new Query(_dequeueIdQueryStatement)
-                                .AddParameter(QueueColumns.SequenceId, sequenceId)).ConfigureAwait(false);
-
-                    if (row != null)
-                    {
-                        if (sync)
-                        {
-                            _databaseGateway.Execute(new Query(_removeQueryStatement)
-                                .AddParameter(QueueColumns.SequenceId, sequenceId), _cancellationToken);
-
-                            _databaseGateway.Execute(
-                                new Query(_enqueueQueryStatement)
-                                    .AddParameter(QueueColumns.MessageId, QueueColumns.MessageId.Value(row))
-                                    .AddParameter(QueueColumns.MessageBody, row["MessageBody"]), _cancellationToken);
-
-                            transaction.CommitTransaction();
-                        }
-                        else
-                        {
-                            await _databaseGateway.ExecuteAsync(new Query(_removeQueryStatement)
-                                .AddParameter(QueueColumns.SequenceId, sequenceId), _cancellationToken).ConfigureAwait(false);
-
-                            await _databaseGateway.ExecuteAsync(
-                                new Query(_enqueueQueryStatement)
-                                    .AddParameter(QueueColumns.MessageId, QueueColumns.MessageId.Value(row))
-                                    .AddParameter(QueueColumns.MessageBody, row["MessageBody"]), _cancellationToken).ConfigureAwait(false);
-
-                            await transaction.CommitTransactionAsync().ConfigureAwait(false);
-                        }
-                    }
-                }
-
-                MessageReleased?.Invoke(this, new MessageReleasedEventArgs(acknowledgementToken));
-            }
-            catch (OperationCanceledException)
-            {
-                Operation?.Invoke(this, new OperationEventArgs("[release/cancelled]"));
-            }
-            finally
-            {
-                Lock.Release();
+                return result;
             }
         }
+        catch (OperationCanceledException)
+        {
+            Operation?.Invoke(this, new("[is-empty/cancelled]", true));
+        }
+        finally
+        {
+            Lock.Release();
+        }
+
+        return true;
+    }
+
+    public async Task ReleaseAsync(object acknowledgementToken)
+    {
+        if (Guard.AgainstNull(acknowledgementToken) is not (long sequenceId and > 0))
+        {
+            return;
+        }
+
+        if (_cancellationToken.IsCancellationRequested)
+        {
+            Operation?.Invoke(this, new("[release/cancelled]"));
+            return;
+        }
+
+        await Lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+
+        if (!_initialized)
+        {
+            Initialize();
+        }
+
+        try
+        {
+            using (new DatabaseContextScope())
+            await using (var databaseContext = _databaseContextFactory.Create(_sqlQueueOptions.ConnectionStringName))
+            await using (var transaction = await databaseContext.BeginTransactionAsync().ConfigureAwait(false))
+            {
+                var row = await databaseContext.GetRowAsync(_queryFactory.Dequeue(_sqlQueueOptions.Schema, Uri.QueueName, sequenceId), _cancellationToken).ConfigureAwait(false);
+
+                if (row != null)
+                {
+                    await databaseContext.ExecuteAsync(_queryFactory.Remove(_sqlQueueOptions.Schema, Uri.QueueName, sequenceId), _cancellationToken).ConfigureAwait(false);
+                    await databaseContext.ExecuteAsync(_queryFactory.Enqueue(_sqlQueueOptions.Schema, Uri.QueueName, Columns.MessageId.Value(row), Guard.AgainstNull(Columns.MessageBody.Value(row), "MessageBody")), _cancellationToken).ConfigureAwait(false);
+
+                    await transaction.CommitTransactionAsync().ConfigureAwait(false);
+                }
+            }
+
+            MessageReleased?.Invoke(this, new(acknowledgementToken));
+        }
+        catch (OperationCanceledException)
+        {
+            Operation?.Invoke(this, new("[release/cancelled]"));
+        }
+        finally
+        {
+            Lock.Release();
+        }
+    }
+
+    private async ValueTask<bool> ExistsAsync(IDatabaseContext databaseContext)
+    {
+        if (!_initialized)
+        {
+            Initialize();
+        }
+
+        return await databaseContext.GetScalarAsync<int>(_queryFactory.Exists(_sqlQueueOptions.Schema, Uri.QueueName), _cancellationToken).ConfigureAwait(false) == 1;
+    }
+
+    private void Initialize()
+    {
+        Operation?.Invoke(this, new("[initialize/starting]"));
+
+        using (new DatabaseContextScope())
+        using (var databaseContext = _databaseContextFactory.Create(_sqlQueueOptions.ConnectionStringName))
+        {
+            databaseContext.ExecuteAsync(_queryFactory.Release(_sqlQueueOptions.Schema, Uri.QueueName, _unacknowledgedHash), _cancellationToken).GetAwaiter().GetResult();
+        }
+
+        _initialized = true;
+
+        Operation?.Invoke(this, new("[initialize/completed]"));
     }
 }

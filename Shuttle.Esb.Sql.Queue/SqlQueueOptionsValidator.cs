@@ -1,22 +1,26 @@
 ﻿using Microsoft.Extensions.Options;
 
-namespace Shuttle.Esb.Sql.Queue
+namespace Shuttle.Esb.Sql.Queue;
+
+public class SqlQueueOptionsValidator : IValidateOptions<SqlQueueOptions>
 {
-    public class SqlQueueOptionsValidator : IValidateOptions<SqlQueueOptions>
+    public ValidateOptionsResult Validate(string? name, SqlQueueOptions options)
     {
-        public ValidateOptionsResult Validate(string name, SqlQueueOptions options)
+        if (string.IsNullOrWhiteSpace(name))
         {
-            if (string.IsNullOrWhiteSpace(name))
-            {
-                return ValidateOptionsResult.Fail(Esb.Resources.QueueConfigurationNameException);
-            }
-
-            if (string.IsNullOrWhiteSpace(options.ConnectionStringName))
-            {
-                return ValidateOptionsResult.Fail(string.Format(Esb.Resources.QueueConfigurationItemException, name, nameof(options.ConnectionStringName)));
-            }
-
-            return ValidateOptionsResult.Success;
+            return ValidateOptionsResult.Fail(Esb.Resources.QueueConfigurationNameException);
         }
+
+        if (string.IsNullOrWhiteSpace(options.ConnectionStringName))
+        {
+            return ValidateOptionsResult.Fail(string.Format(Esb.Resources.QueueConfigurationItemException, name, nameof(options.ConnectionStringName)));
+        }
+
+        if (string.IsNullOrWhiteSpace(options.Schema))
+        {
+            return ValidateOptionsResult.Fail(string.Format(Esb.Resources.QueueConfigurationItemException, name, nameof(options.Schema)));
+        }
+
+        return ValidateOptionsResult.Success;
     }
 }

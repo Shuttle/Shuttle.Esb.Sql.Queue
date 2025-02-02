@@ -26,10 +26,13 @@ public class SqlConfiguration
             })
             .AddSqlQueue(builder =>
             {
-                builder.AddOptions("shuttle", new SqlQueueOptions
+                builder.AddOptions("shuttle", new()
                 {
+                    Schema = "QueueFixture",
                     ConnectionStringName = "shuttle"
                 });
+
+                builder.UseSqlServer();
             });
 
         return services;

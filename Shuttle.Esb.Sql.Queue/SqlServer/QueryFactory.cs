@@ -26,7 +26,7 @@ UPDATE
 	[{schema}].[{queueName}] 
 SET
 	UnacknowledgedHash = @UnacknowledgedHash,
-	UnacknowledgedDate = SYSDATETIMEOFFSET(),
+	UnacknowledgedDate = GETUTCDATE(),
 	UnacknowledgedId = @UnacknowledgedId
 WHERE 
 	SequenceId = 
@@ -89,7 +89,7 @@ BEGIN
 		[MessageId] [uniqueidentifier] NOT NULL,
 		[MessageBody] [varbinary](max) NOT NULL,
 		[UnacknowledgedHash] binary(16) NULL,
-		[UnacknowledgedDate] datetimeoffset NULL,
+		[UnacknowledgedDate] datetime NULL,
 		[UnacknowledgedId] [uniqueidentifier] NULL,
 	    CONSTRAINT [PK_{queueName}] PRIMARY KEY CLUSTERED 
 	    (
